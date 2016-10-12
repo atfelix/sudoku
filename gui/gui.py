@@ -9,9 +9,10 @@ from tkinter import Tk, Canvas, Frame, Button, BOTH, TOP, BOTTOM, LEFT, RIGHT, X
 ### Constants
 
 BOARDS = ['debug', 'n00b', 'l33t', 'error']
-MARGIN = 20
-SIDE = 50
+MARGIN = 10
+SIDE = 60
 WIDTH = HEIGHT = MARGIN * 2 + SIDE * 9
+SOLVE_BUTTON_WIDTH=12
 
 class SudokuError(Exception):
     """
@@ -132,54 +133,52 @@ class SudokuUI(Frame):
 
     def __initUI(self):
 
-        self.parent.title("Sudoku")
+        self.parent.title("Shadow Sudoku")
 
-        # self.pack is a Frame attribute that organizes the frame's
-        # geometry relative to the parent.  To fill the entire frame,
-        # use fill=BOTH (horizontally and vertically).  Other options
-        # include NONE, X or Y.
-
-        self.pack(fill=BOTH)
-
-        # the canvas attribute is a general-purpose widget used to
-        # display the board.
+        self.grid()
 
         self.canvas = Canvas(self,
                              width=WIDTH,
-                             height=HEIGHT)
-        self.canvas.pack(fill=BOTH, side=TOP)
+                             height=HEIGHT,
+                             highlightthickness=0)
 
-        # Below the canvas is the clear answers button.
+        self.canvas.grid(column=0, row=0, columnspan=15, rowspan=15)
 
         clear_button = Button(self,
                               text="Clear Puzzle",
-                              command=self.__clear_puzzle)
-        clear_button.pack(side=BOTTOM)
+                              command=self.__clear_puzzle,
+                              width=20)
+        clear_button.grid(column=2, row=30, columnspan=12)
 
         solve_puzzle_button = Button(self,
                                      text='Solve Puzzle',
-                                     command=self.__solve_puzzle)
-        solve_puzzle_button.pack(side=LEFT)
+                                     command=self.__solve_puzzle,
+                                     width=SOLVE_BUTTON_WIDTH)
+        solve_puzzle_button.grid(column=2, row=25)
 
         solve_row_button = Button(self,
-                                     text='Solve Row',
-                                     command=self.__solve_row)
-        solve_row_button.pack(side=LEFT)
+                                  text='Solve Row',
+                                  command=self.__solve_row,
+                                  width=SOLVE_BUTTON_WIDTH)
+        solve_row_button.grid(column=4, row=25)
 
         solve_column_button = Button(self,
                                      text='Solve Column',
-                                     command=self.__solve_column)
-        solve_column_button.pack(side=RIGHT)
+                                     command=self.__solve_column,
+                                     width=SOLVE_BUTTON_WIDTH)
+        solve_column_button.grid(column=6, row=25)
 
         solve_box_button = Button(self,
                                      text='Solve Box',
-                                     command=self.__solve_box)
-        solve_box_button.pack(side=RIGHT)
+                                     command=self.__solve_box,
+                                     width=SOLVE_BUTTON_WIDTH)
+        solve_box_button.grid(column=8, row=25)
 
         solve_cell_button = Button(self,
                                      text='Solve Cell',
-                                     command=self.__solve_cell)
-        solve_cell_button.pack(side=RIGHT)
+                                     command=self.__solve_cell,
+                                     width=SOLVE_BUTTON_WIDTH)
+        solve_cell_button.grid(column=10, row=25)
 
         self.__set_cursor()
 
@@ -190,6 +189,7 @@ class SudokuUI(Frame):
 
         self.canvas.bind("<Button-1>", self.__cell_clicked)
         self.canvas.bind("<Key>", self.__key_pressed)
+
 
     # Helper function for __initUI
 
@@ -349,7 +349,7 @@ class SudokuUI(Frame):
 
             #if (row, col) == (self.row, self.col):
             #    self.row, self.col = -1, -1
-            if self.game.puzzle[row][col] == 0:
+            if self.game.start_puzzle[row][col] == 0:
                 self.row, self.col = row, col
 
         self.__draw_puzzle()
