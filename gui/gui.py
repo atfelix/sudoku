@@ -68,6 +68,10 @@ class SudokuGame(object):
     def __init__(self, board_file):
         self.board_file = board_file
         self.start_puzzle = SudokuBoard(board_file).board
+        self.start()
+
+        self.entries = [[set(range(1, 10)) for __ in range(9)] for _ in range(9)]
+        self.__find_permissible_entries()
 
 
     def start(self):
@@ -113,7 +117,56 @@ class SudokuGame(object):
         for r in range(row * 3, (row + 1) * 3):
             for c in range(column * 3, (column + 1) * 3):
                 box.append(self.puzzle[r][c])
+
         return self.__check_block(box)
+
+
+    def __find_permissible_entries(self):
+
+        for i in range(9):
+            for j in range(9):
+
+                if self.start_puzzle[i][j] != 0:
+                    self.entries[i][j] = {self.start_puzzle[i][j]}
+
+                    self.__helper_find(i, j)
+
+
+    def __helper_find(self, row, col):
+        for x in range(9):
+            if x != col:
+                self.entries[row][x].discard(self.start_puzzle[row][col])
+
+            if x != row:
+                self.entries[x][col].discard(self.start_puzzle[row][col])
+
+        i, j = row // 3, col // 3
+
+        for ii in range(3):
+            for jj in range(3):
+                if 3 * i + ii != row or 3 * j + jj != col:
+                    self.entries[3 * i + ii][3 * j + jj].discard(self.start_puzzle[row][col])
+
+
+
+    def __helper_find_permissible(self, row, col):
+        if self.entries[row][col] != (0,) and len(self.entries[row][col]) > 1:
+            return
+
+        potential = set(range(1, 10))
+
+        for x in range(9):
+            potential.discard(self.entries[row][x][0])
+            potential.discard(self.entries[x][col][0])
+
+        i, j = row // 3, col // 3
+
+        for ii in range(3):
+            for jj in range(3):
+                potential.discard(self.entries[i + ii][j + jj][0])
+
+        self.entries[row][col] = tuple(potential)
+
 
 
 class SudokuUI(Frame):
@@ -128,8 +181,6 @@ class SudokuUI(Frame):
         self.parent = parent
 
         Frame.__init__(self, parent)
-
-        self.row, self.col = -1, -1
 
         self.__initUI()
 
@@ -147,7 +198,8 @@ class SudokuUI(Frame):
                              height=SUDOKU_HEIGHT,
                              highlightthickness=0)
 
-        self.canvas.grid(column=0, row=0, columnspan=15, rowspan=15)
+        self.canvas.grid(column=0, row=1, columnspan=15, rowspan=15)
+        self.canvas.row, self.canvas.col = -1, -1
 
         # The shadow sudoku grid
 
@@ -156,15 +208,20 @@ class SudokuUI(Frame):
                                   height=SUDOKU_HEIGHT,
                                   highlightthickness=0)
 
-        self.shadow.grid(column=25, row=0, columnspan=15, rowspan=15)
+        self.shadow.grid(column=25, row=1, columnspan=15, rowspan=15)
+        self.shadow.row, self.shadow.col = -1, -1
+        self.shadow.subrow, self.shadow.subcol = -1, -1
 
         self.__make_buttons()
-        self.__make_activity_log_title()
+        self.__draw_activity_log_title()
+        self.__draw_canvas_title()
+        self.__draw_shadow_title()
         self.__make_log()
 
         self.__draw_activity_log()
 
         self.__set_cursor()
+        self.__set_shadow_cursor()
 
         self.__draw_puzzle()
 
@@ -192,31 +249,31 @@ class SudokuUI(Frame):
                                      text='Clear Puzzle',
                                      command=self.__clear_puzzle,
                                      width=BUTTON_WIDTH)
-        clear_puzzle_button.grid(column=2, row=30)
+        clear_puzzle_button.grid(column=0, row=30)
 
         clear_row_button = Button(self,
                                   text='Clear Row',
                                   command=self.__clear_row,
                                   width=BUTTON_WIDTH)
-        clear_row_button.grid(column=4, row=30)
+        clear_row_button.grid(column=2, row=30)
 
         clear_column_button = Button(self,
                                      text='Clear Column',
                                      command=self.__clear_column,
                                      width=BUTTON_WIDTH)
-        clear_column_button.grid(column=6, row=30)
+        clear_column_button.grid(column=4, row=30)
 
         clear_box_button = Button(self,
                                   text='Clear Box',
                                   command=self.__clear_box,
                                   width=BUTTON_WIDTH)
-        clear_box_button.grid(column=8, row=30)
+        clear_box_button.grid(column=6, row=30)
 
         clear_cell_button = Button(self,
                                    text='Clear Cell',
                                    command=self.__clear_cell,
                                    width=BUTTON_WIDTH)
-        clear_cell_button.grid(column=10, row=30)
+        clear_cell_button.grid(column=8, row=30)
 
 
     def __make_solve_buttons(self):
@@ -225,40 +282,57 @@ class SudokuUI(Frame):
                                      text='Solve Puzzle',
                                      command=self.__solve_puzzle,
                                      width=BUTTON_WIDTH)
-        solve_puzzle_button.grid(column=2, row=25)
+        solve_puzzle_button.grid(column=0, row=25)
 
         solve_row_button = Button(self,
                                   text='Solve Row',
                                   command=self.__solve_row,
                                   width=BUTTON_WIDTH)
-        solve_row_button.grid(column=4, row=25)
+        solve_row_button.grid(column=2, row=25)
 
         solve_column_button = Button(self,
                                      text='Solve Column',
                                      command=self.__solve_column,
                                      width=BUTTON_WIDTH)
-        solve_column_button.grid(column=6, row=25)
+        solve_column_button.grid(column=4, row=25)
 
         solve_box_button = Button(self,
                                      text='Solve Box',
                                      command=self.__solve_box,
                                      width=BUTTON_WIDTH)
-        solve_box_button.grid(column=8, row=25)
+        solve_box_button.grid(column=6, row=25)
 
         solve_cell_button = Button(self,
                                      text='Solve Cell',
                                      command=self.__solve_cell,
                                      width=BUTTON_WIDTH)
-        solve_cell_button.grid(column=10, row=25)
+        solve_cell_button.grid(column=8, row=25)
 
 
-    def __make_activity_log_title(self):
+    def __draw_activity_log_title(self):
 
         log_title = Label(self,
                           text='Activity Log',
                           font=('Palatino', 20),
                           justify=LEFT)
-        log_title.grid(column=20, row=0)
+        log_title.grid(column=SUDOKU_WIDTH // SIDE + 11, row=0)
+
+    def __draw_canvas_title(self):
+
+        canvas_title = Label(self,
+                             text='Sudoku Puzzle',
+                             font=('Palatino', 20),
+                             justify=LEFT)
+        canvas_title.grid(column=SUDOKU_WIDTH // SIDE // 2, row=0)
+
+
+    def __draw_shadow_title(self):
+
+        shadow_title = Label(self,
+                             text='Shadow Puzzle',
+                             font=('Palatino', 20),
+                             justify=LEFT)
+        shadow_title.grid(column=SUDOKU_WIDTH // SIDE * 2 + 15, row=0)
 
 
     def __make_log(self):
@@ -267,7 +341,7 @@ class SudokuUI(Frame):
 
     # Helper function for __initUI
 
-    def __draw_grid(self):
+    def __draw_grid(self, grid):
         """
         Draws grid divided with blue lines into 3 x 3 squares
         """
@@ -280,13 +354,13 @@ class SudokuUI(Frame):
             y0 = MARGIN
             x1 = MARGIN + i * SIDE
             y1 = SUDOKU_HEIGHT - MARGIN
-            self.canvas.create_line(x0, y0, x1, y1, fill=color, width=width)
+            grid.create_line(x0, y0, x1, y1, fill=color, width=width)
 
             x0 = MARGIN
             y0 = MARGIN + i * SIDE
             x1 = SUDOKU_WIDTH - MARGIN
             y1 = MARGIN + i * SIDE
-            self.canvas.create_line(x0, y0, x1, y1, fill=color, width=width)
+            grid.create_line(x0, y0, x1, y1, fill=color, width=width)
 
 
     def __draw_activity_log(self):
@@ -302,11 +376,8 @@ class SudokuUI(Frame):
                                width=25,
                                height=29)
 
-        for string in self.log:
-            self.listbox.insert(0, string)
-
         self.listbox.grid(column=20, row=1)
-        self.scrollbar.grid(column=21, row=1, sticky=N + S)
+        self.scrollbar.grid(column=21, row=1, sticky=N+S)
         self.scrollbar['command'] = self.listbox.yview
 
 
@@ -318,8 +389,9 @@ class SudokuUI(Frame):
 
         for i in range(9):
             for j in range(9):
-                x = MARGIN + j * SIDE + SIDE // 2
-                y = MARGIN + i * SIDE + SIDE // 2
+
+                x = MARGIN + j * SIDE + SIDE / 2
+                y = MARGIN + i * SIDE + SIDE / 2
                 x0 = MARGIN + j * SIDE + 1
                 y0 = MARGIN + i * SIDE + 1
                 x1 = MARGIN + (j + 1) * SIDE - 1
@@ -331,10 +403,10 @@ class SudokuUI(Frame):
                 if answer == original != 0:
                     bgcolor, color = 'black', 'white'
 
-                elif self.row == i or self.col == j:
+                elif self.canvas.row == i or self.canvas.col == j:
                     bgcolor, color = 'light cyan', 'black'
 
-                elif self.row // 3 == i // 3 and self.col // 3 == j // 3:
+                elif self.canvas.row // 3 == i // 3 and self.canvas.col // 3 == j // 3:
                     bgcolor, color = 'light cyan', 'black'
 
                 else:
@@ -350,43 +422,151 @@ class SudokuUI(Frame):
                                         y,
                                         text=answer if answer != 0 else '',
                                         tags='numbers',
-                                        fill=color)
-        self.__draw_cursor()
-        self.__draw_grid()
+                                        fill=color,
+                                        font=('',25))
+
+        self.__draw_cursor(self.canvas)
+        self.__draw_grid(self.canvas)
+
+        self.canvas.lift('numbers')
 
 
     def __draw_shadow_puzzle(self):
-        pass
+
+        self.shadow.delete('numbers')
+
+        x_s = []
+        y_s = []
+
+        for i in range(9):
+            for j in range(9):
+
+                answer = self.game.puzzle[i][j]
+                original = self.game.start_puzzle[i][j]
+
+                for ii in range(3):
+                    for jj in range(3):
+
+                        x = MARGIN + j * SIDE + jj * SIDE / 3 + SIDE / 6
+                        y = MARGIN + i * SIDE + ii * SIDE / 3 + SIDE / 6
+                        x0 = MARGIN + j * SIDE + jj * (SIDE - 1) / 3
+                        y0 = MARGIN + i * SIDE + ii * (SIDE - 1) / 3
+                        x1 = MARGIN + j * SIDE + (jj + 1) * (SIDE - 1) / 3
+                        y1 = MARGIN + i * SIDE + (ii + 1) * (SIDE - 1) / 3
+
+                        number = ii * 3 + jj + 1
+                        font = ('', 12)
+
+
+                        if original == 0:
+                            if self.shadow.row == i or self.shadow.col == j:
+                                bgcolor = 'light cyan'
+
+                            elif self.shadow.row // 3 == i // 3 and self.shadow.col // 3 == j // 3:
+                                bgcolor = 'light cyan'
+
+                            else:
+                                bgcolor = 'white'
+
+
+                            if number in self.game.entries[i][j]:
+                                color = 'black'
+
+                            else:
+                                color = bgcolor
+
+                        elif answer == original:
+                            bgcolor, number = 'black', answer
+                            color = 'white' if ii == jj == 1 else 'black'
+                            font = ('', 25) if ii == jj == 1 else font
+
+                        self.shadow.create_rectangle(x0,
+                                                     y0,
+                                                     x1,
+                                                     y1,
+                                                     fill=bgcolor,
+                                                     width=1,
+                                                     outline=bgcolor)
+
+                        self.shadow.create_text(x,
+                                                y,
+                                                text=number,
+                                                tags='numbers',
+                                                fill=color,
+                                                font=font)
+
+        self.__draw_cursor(self.shadow)
+        self.__draw_shadow_cursor()
+        self.__draw_grid(self.shadow)
+
+        self.shadow.lift('numbers')
+
 
     def __set_cursor(self):
-        if (self.row, self.col) == (-1, -1):
+        if (self.canvas.row, self.canvas.col) == (-1, -1):
             for i in range(9):
                 for j in range(9):
                     if self.game.start_puzzle[i][j] == 0:
-                        self.row, self.col = i, j
+                        self.canvas.row, self.canvas.col = i, j
+                        self.shadow.row, self.shadow.col = i, j
                         return
 
-    def __draw_cursor(self):
+    def __set_shadow_cursor(self):
+        for i in range(3):
+            for j in range(3):
+                number = i * 3 + j + 1
+                if number in self.game.entries[self.shadow.row][self.shadow.col]:
+                    self.shadow.subrow, self.shadow.subcol = i, j
+                    return
+
+    def __draw_cursor(self, grid):
 
         """
         Highlight the particular cell that the user has clicked on.
         """
 
-        self.canvas.delete('cursor')
+        grid.delete('cursor')
 
-        if self.row >= 0 and self.col >=0:
-            x0 = MARGIN + self.col * SIDE + 1
-            y0 = MARGIN + self.row * SIDE + 1
-            x1 = MARGIN + (self.col + 1) * SIDE - 1
-            y1 = MARGIN + (self.row + 1) * SIDE - 1
+        if self.canvas.row >= 0 and self.canvas.col >=0:
+            x0 = MARGIN + self.canvas.col * SIDE + 1
+            y0 = MARGIN + self.canvas.row * SIDE + 1
+            x1 = MARGIN + (self.canvas.col + 1) * SIDE - 1
+            y1 = MARGIN + (self.canvas.row + 1) * SIDE - 1
 
-            self.canvas.create_rectangle(x0,
-                                         y0,
-                                         x1,
-                                         y1,
-                                         outline='dark cyan',
-                                         tags='cursor',
-                                         width=3)
+            grid.create_rectangle(x0,
+                                  y0,
+                                  x1,
+                                  y1,
+                                  outline='dark cyan',
+                                  tags='cursor',
+                                  width=3)
+
+    def __draw_shadow_cursor(self):
+        """
+        Highlight the particular subcell that the user has clicked on
+        in the shadow grid.
+        """
+
+        self.shadow.delete('shadow cursor')
+
+        if self.shadow.row >= 0 and self.shadow.col >= 0:
+            if self.shadow.subrow >= 0 and self.shadow.subcol >= 0:
+                x0 = MARGIN + self.shadow.col * SIDE + self.shadow.subcol * SIDE / 3 + 1
+                y0 = MARGIN + self.shadow.row * SIDE + self.shadow.subrow * SIDE / 3 + 1
+                x1 = MARGIN + self.shadow.col * SIDE + (self.shadow.subcol + 1) * SIDE / 3 - 1
+                y1 = MARGIN + self.shadow.row * SIDE + (self.shadow.subrow + 1) * SIDE / 3 - 1
+
+                self.shadow.create_rectangle(x0,
+                                             y0,
+                                             x1,
+                                             y1,
+                                             fill='light yellow',
+                                             outline='dark green',
+                                             width=3,
+                                             tags='shadow cursor')
+
+                self.shadow.lift('shadow cursor')
+
 
     def __draw_victory(self):
 
@@ -401,7 +581,7 @@ class SudokuUI(Frame):
                                 fill='dark green',
                                 outline='black')
 
-        x = y = MARGIN + 4 * SIDE + SIDE // 2
+        x = y = MARGIN + 4 * SIDE + SIDE / 2
 
         self.canvas.create_text(x,
                                 y,
@@ -466,10 +646,8 @@ class SudokuUI(Frame):
 
             row, col = (y - MARGIN) // SIDE, (x - MARGIN) // SIDE
 
-            #if (row, col) == (self.row, self.col):
-            #    self.row, self.col = -1, -1
             if self.game.start_puzzle[row][col] == 0:
-                self.row, self.col = row, col
+                self.canvas.row, self.canvas.col = row, col
 
         self.__draw_puzzle()
 
@@ -478,42 +656,42 @@ class SudokuUI(Frame):
         if self.game.game_over:
             return
 
-        if self.row >= 0 and self.col >= 0:
+        if self.canvas.row >= 0 and self.canvas.col >= 0:
 
             if event.keysym in '123456789':
-                self.game.puzzle[self.row][self.col] = int(event.keysym)
+                self.game.puzzle[self.canvas.row][self.canvas.col] = int(event.keysym)
 
                 string = 'Entered %c in row %d column %d' % (event.keysym,
-                                                             self.row + 1,
-                                                             self.col + 1)
+                                                             self.canvas.row + 1,
+                                                             self.canvas.col + 1)
 
                 if not self.log or string != self.log[-1]:
                     self.log.append(string)
                     self.listbox.insert(0, string)
 
             elif event.keysym == 'Left':
-                self.col = (self.col - 1) % 9
+                self.canvas.col = (self.canvas.col - 1) % 9
 
-                while self.game.start_puzzle[self.row][self.col] != 0:
-                    self.col = (self.col - 1) % 9
+                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
+                    self.canvas.col = (self.canvas.col - 1) % 9
 
             elif event.keysym == 'Right':
-                self.col = (self.col + 1) % 9
+                self.canvas.col = (self.canvas.col + 1) % 9
 
-                while self.game.start_puzzle[self.row][self.col] != 0:
-                    self.col = (self.col + 1) % 9
+                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
+                    self.canvas.col = (self.canvas.col + 1) % 9
 
             elif event.keysym == 'Up':
-                self.row = (self.row - 1) % 9
+                self.canvas.row = (self.canvas.row - 1) % 9
 
-                while self.game.start_puzzle[self.row][self.col] != 0:
-                    self.row = (self.row - 1) % 9
+                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
+                    self.canvas.row = (self.canvas.row - 1) % 9
 
             elif event.keysym == 'Down':
-                self.row = (self.row + 1) % 9
+                self.canvas.row = (self.canvas.row + 1) % 9
 
-                while self.game.start_puzzle[self.row][self.col] != 0:
-                    self.row= (self.row + 1) % 9
+                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
+                    self.canvas.row= (self.canvas.row + 1) % 9
 
             self.__draw_puzzle()
 
