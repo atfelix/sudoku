@@ -70,7 +70,13 @@ class SudokuGame(object):
         self.start_puzzle = SudokuBoard(board_file).board
         self.start()
 
-        self.entries = [[set(range(1, 10)) for __ in range(9)] for _ in range(9)]
+        #self.entries = [[set(range(1, 10)) for __ in range(9)] for _ in range(9)]
+        self.entries = []
+        for i in range(9):
+            self.entries.append([])
+            for j in range(9):
+                self.entries[-1].append([-1] * 9)
+
         self.__find_permissible_entries()
 
 
@@ -126,46 +132,35 @@ class SudokuGame(object):
         for i in range(9):
             for j in range(9):
 
-                if self.start_puzzle[i][j] != 0:
-                    self.entries[i][j] = {self.start_puzzle[i][j]}
+                value = self.start_puzzle[i][j]
 
-                    self.__helper_find(i, j)
+                if value != 0:
+                    self.entries[i][j] = [0] * 9
+                    self.entries[i][j][value - 1] = 1
+
+                    self.__helper_find(i, j, value)
+
+        for i in range(9):
+            for j in range(9):
+                for k in range(9):
+                    if self.entries[i][j][k] == -1:
+                        self.entries[i][j][k] = 1
 
 
-    def __helper_find(self, row, col):
+    def __helper_find(self, row, col, value):
         for x in range(9):
             if x != col:
-                self.entries[row][x].discard(self.start_puzzle[row][col])
+                self.entries[row][x][value - 1] = 0
 
             if x != row:
-                self.entries[x][col].discard(self.start_puzzle[row][col])
+                self.entries[x][col][value - 1] = 0
 
         i, j = row // 3, col // 3
 
         for ii in range(3):
             for jj in range(3):
                 if 3 * i + ii != row or 3 * j + jj != col:
-                    self.entries[3 * i + ii][3 * j + jj].discard(self.start_puzzle[row][col])
-
-
-
-    def __helper_find_permissible(self, row, col):
-        if self.entries[row][col] != (0,) and len(self.entries[row][col]) > 1:
-            return
-
-        potential = set(range(1, 10))
-
-        for x in range(9):
-            potential.discard(self.entries[row][x][0])
-            potential.discard(self.entries[x][col][0])
-
-        i, j = row // 3, col // 3
-
-        for ii in range(3):
-            for jj in range(3):
-                potential.discard(self.entries[i + ii][j + jj][0])
-
-        self.entries[row][col] = tuple(potential)
+                    self.entries[3 * i + ii][3 * j + jj][value - 1] = 0
 
 
 
@@ -204,9 +199,9 @@ class SudokuUI(Frame):
         # The shadow sudoku grid
 
         self.shadow = Canvas(self,
-                                  width=SUDOKU_WIDTH,
-                                  height=SUDOKU_HEIGHT,
-                                  highlightthickness=0)
+                             width=SUDOKU_WIDTH,
+                             height=SUDOKU_HEIGHT,
+                             highlightthickness=0)
 
         self.shadow.grid(column=25, row=1, columnspan=15, rowspan=15)
         self.shadow.row, self.shadow.col = -1, -1
@@ -216,12 +211,14 @@ class SudokuUI(Frame):
         self.__draw_activity_log_title()
         self.__draw_canvas_title()
         self.__draw_shadow_title()
-        self.__make_log()
 
+        self.__make_log()
         self.__draw_activity_log()
 
         self.__set_cursor()
         self.__set_shadow_cursor()
+        self.__set_drawing_puzzle_rectangles()
+        self.__set_drawing_shadow_puzzle_rectangles()
 
         self.__draw_puzzle()
 
@@ -332,7 +329,7 @@ class SudokuUI(Frame):
                              text='Shadow Puzzle',
                              font=('Palatino', 20),
                              justify=LEFT)
-        shadow_title.grid(column=SUDOKU_WIDTH // SIDE * 2 + 15, row=0)
+        shadow_title.grid(column=SUDOKU_WIDTH // SIDE * 2 + 14, row=0)
 
 
     def __make_log(self):
@@ -383,19 +380,8 @@ class SudokuUI(Frame):
 
     def __draw_puzzle(self):
 
-        #clear the puzzle first
-
-        self.canvas.delete('numbers')
-
         for i in range(9):
             for j in range(9):
-
-                x = MARGIN + j * SIDE + SIDE / 2
-                y = MARGIN + i * SIDE + SIDE / 2
-                x0 = MARGIN + j * SIDE + 1
-                y0 = MARGIN + i * SIDE + 1
-                x1 = MARGIN + (j + 1) * SIDE - 1
-                y1 = MARGIN + (i + 1) * SIDE - 1
 
                 answer = self.game.puzzle[i][j]
                 original = self.game.start_puzzle[i][j]
@@ -412,18 +398,14 @@ class SudokuUI(Frame):
                 else:
                     bgcolor, color = 'white', 'black'
 
-                self.canvas.create_rectangle(x0,
-                                             y0,
-                                             x1,
-                                             y1,
-                                             fill=bgcolor,
-                                             outline=bgcolor)
-                self.canvas.create_text(x,
-                                        y,
-                                        text=answer if answer != 0 else '',
-                                        tags='numbers',
-                                        fill=color,
-                                        font=('',25))
+                self.canvas.itemconfig(self.canvas.rectangles[i][j],
+                                       fill=bgcolor,
+                                       outline=bgcolor,
+                                       width=1)
+
+                self.canvas.itemconfig(self.canvas.text[i][j],
+                                       text=answer if answer != 0 else '',
+                                       fill=color)
 
         self.__draw_cursor(self.canvas)
         self.__draw_grid(self.canvas)
@@ -433,11 +415,6 @@ class SudokuUI(Frame):
 
     def __draw_shadow_puzzle(self):
 
-        self.shadow.delete('numbers')
-
-        x_s = []
-        y_s = []
-
         for i in range(9):
             for j in range(9):
 
@@ -446,13 +423,6 @@ class SudokuUI(Frame):
 
                 for ii in range(3):
                     for jj in range(3):
-
-                        x = MARGIN + j * SIDE + jj * SIDE / 3 + SIDE / 6
-                        y = MARGIN + i * SIDE + ii * SIDE / 3 + SIDE / 6
-                        x0 = MARGIN + j * SIDE + jj * (SIDE - 1) / 3
-                        y0 = MARGIN + i * SIDE + ii * (SIDE - 1) / 3
-                        x1 = MARGIN + j * SIDE + (jj + 1) * (SIDE - 1) / 3
-                        y1 = MARGIN + i * SIDE + (ii + 1) * (SIDE - 1) / 3
 
                         number = ii * 3 + jj + 1
                         font = ('', 12)
@@ -468,32 +438,25 @@ class SudokuUI(Frame):
                             else:
                                 bgcolor = 'white'
 
+                            color = 'black' if self.game.entries[i][j][number - 1] else bgcolor
 
-                            if number in self.game.entries[i][j]:
-                                color = 'black'
-
-                            else:
-                                color = bgcolor
+                            if self.game.entries[i][j][number - 1] == 2:
+                                number = 'X'
 
                         elif answer == original:
                             bgcolor, number = 'black', answer
                             color = 'white' if ii == jj == 1 else 'black'
                             font = ('', 25) if ii == jj == 1 else font
 
-                        self.shadow.create_rectangle(x0,
-                                                     y0,
-                                                     x1,
-                                                     y1,
-                                                     fill=bgcolor,
-                                                     width=1,
-                                                     outline=bgcolor)
+                        self.shadow.itemconfig(self.shadow.rectangles[i][j][ii][jj],
+                                               fill=bgcolor,
+                                               outline=bgcolor)
 
-                        self.shadow.create_text(x,
-                                                y,
-                                                text=number,
-                                                tags='numbers',
-                                                fill=color,
-                                                font=font)
+                        self.shadow.itemconfig(self.shadow.text[i][j][ii][jj],
+                                               text=number,
+                                               tags='numbers',
+                                               fill=color,
+                                               font=font)
 
         self.__draw_cursor(self.shadow)
         self.__draw_shadow_cursor()
@@ -511,13 +474,86 @@ class SudokuUI(Frame):
                         self.shadow.row, self.shadow.col = i, j
                         return
 
-    def __set_shadow_cursor(self):
+    def __set_shadow_cursor(self, row=-1, col=-1):
         for i in range(3):
             for j in range(3):
                 number = i * 3 + j + 1
-                if number in self.game.entries[self.shadow.row][self.shadow.col]:
+                if self.game.entries[self.shadow.row][self.shadow.col][number - 1]:
                     self.shadow.subrow, self.shadow.subcol = i, j
+                if (row == -1 and col == -1) or (row == i and col == j):
                     return
+
+
+    def __set_rows_and_cols(self, row, col):
+        self.canvas.row = (self.canvas.row + row) % 9
+        self.canvas.col= (self.canvas.col + col) % 9
+        self.__set_shadow_rows_and_cols(row, col)
+
+
+    def __set_shadow_rows_and_cols(self, row, col):
+        self.shadow.row = (self.shadow.row + row) % 9
+        self.shadow.col= (self.shadow.col + col) % 9
+        self.__set_shadow_cursor()
+
+
+    def __set_drawings(self):
+        self.__set_drawing_puzzle_rectangles()
+        self.__set_drawing_shadow_puzzle_rectangles()
+
+
+    def __set_drawing_puzzle_rectangles(self):
+
+        self.canvas.rectangles = []
+        self.canvas.text = []
+
+        for i in range(9):
+            self.canvas.rectangles.append([])
+            self.canvas.text.append([])
+            for j in range(9):
+
+                x = MARGIN + j * SIDE + SIDE / 2
+                y = MARGIN + i * SIDE + SIDE / 2
+                x0 = MARGIN + j * SIDE + 1
+                y0 = MARGIN + i * SIDE + 1
+                x1 = MARGIN + (j + 1) * SIDE - 1
+                y1 = MARGIN + (i + 1) * SIDE - 1
+
+                rect = self.canvas.create_rectangle(x0, y0, x1, y1)
+                self.canvas.rectangles[-1].append(rect)
+
+                text = self.canvas.create_text(x, y, tags='numbers', font=('', 25))
+                self.canvas.text[-1].append(text)
+
+
+    def __set_drawing_shadow_puzzle_rectangles(self):
+
+        self.shadow.rectangles = []
+        self.shadow.text = []
+
+        for i in range(9):
+            self.shadow.rectangles.append([])
+            self.shadow.text.append([])
+            for j in range(9):
+                self.shadow.rectangles[-1].append([])
+                self.shadow.text[-1].append([])
+                for ii in range(3):
+                    self.shadow.rectangles[-1][-1].append([])
+                    self.shadow.text[-1][-1].append([])
+                    for jj in range(3):
+
+                        x = MARGIN + j * SIDE + jj * SIDE / 3 + SIDE / 6
+                        y = MARGIN + i * SIDE + ii * SIDE / 3 + SIDE / 6
+                        x0 = MARGIN + j * SIDE + jj * (SIDE - 1) / 3
+                        y0 = MARGIN + i * SIDE + ii * (SIDE - 1) / 3
+                        x1 = MARGIN + j * SIDE + (jj + 1) * (SIDE - 1) / 3
+                        y1 = MARGIN + i * SIDE + (ii + 1) * (SIDE - 1) / 3
+
+                        rect = self.shadow.create_rectangle(x0, y0, x1, y1)
+                        self.shadow.rectangles[-1][-1][-1].append(rect)
+
+                        text = self.shadow.create_text(x, y, tags='numbers', font=('', 12))
+                        self.shadow.text[-1][-1][-1].append(text)
+
 
     def __draw_cursor(self, grid):
 
@@ -527,11 +563,11 @@ class SudokuUI(Frame):
 
         grid.delete('cursor')
 
-        if self.canvas.row >= 0 and self.canvas.col >=0:
-            x0 = MARGIN + self.canvas.col * SIDE + 1
-            y0 = MARGIN + self.canvas.row * SIDE + 1
-            x1 = MARGIN + (self.canvas.col + 1) * SIDE - 1
-            y1 = MARGIN + (self.canvas.row + 1) * SIDE - 1
+        if grid.row >= 0 and grid.col >=0:
+            x0 = MARGIN + grid.col * SIDE + 1
+            y0 = MARGIN + grid.row * SIDE + 1
+            x1 = MARGIN + (grid.col + 1) * SIDE - 1
+            y1 = MARGIN + (grid.row + 1) * SIDE - 1
 
             grid.create_rectangle(x0,
                                   y0,
@@ -647,9 +683,11 @@ class SudokuUI(Frame):
             row, col = (y - MARGIN) // SIDE, (x - MARGIN) // SIDE
 
             if self.game.start_puzzle[row][col] == 0:
-                self.canvas.row, self.canvas.col = row, col
+                self.__set_rows_and_cols(row - self.canvas.row,
+                                         col - self.canvas.col)
 
         self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
 
 
     def __key_pressed(self, event):
@@ -670,41 +708,77 @@ class SudokuUI(Frame):
                     self.listbox.insert(0, string)
 
             elif event.keysym == 'Left':
-                self.canvas.col = (self.canvas.col - 1) % 9
+                self.__set_rows_and_cols(0, -1)
 
                 while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.canvas.col = (self.canvas.col - 1) % 9
+                    self.__set_rows_and_cols(0, -1)
 
             elif event.keysym == 'Right':
-                self.canvas.col = (self.canvas.col + 1) % 9
+                self.__set_rows_and_cols(0, 1)
 
                 while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.canvas.col = (self.canvas.col + 1) % 9
+                    self.__set_rows_and_cols(0, 1)
 
             elif event.keysym == 'Up':
-                self.canvas.row = (self.canvas.row - 1) % 9
+                self.__set_rows_and_cols(-1, 0)
 
                 while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.canvas.row = (self.canvas.row - 1) % 9
+                    self.__set_rows_and_cols(-1, 0)
 
             elif event.keysym == 'Down':
-                self.canvas.row = (self.canvas.row + 1) % 9
+                self.__set_rows_and_cols(1, 0)
 
                 while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.canvas.row= (self.canvas.row + 1) % 9
+                    self.__set_rows_and_cols(1, 0)
 
             self.__draw_puzzle()
+            self.__draw_shadow_puzzle()
 
             if self.game.check_win():
                 self.__draw_victory()
 
     def __shadow_cell_clicked(self, event):
-        pass
+
+        if self.game.game_over:
+            return
+
+        x, y = event.x, event.y
+
+        if (MARGIN < x < SUDOKU_WIDTH - MARGIN and MARGIN < y < SUDOKU_HEIGHT - MARGIN):
+            self.shadow.focus_set()
+
+            row, col = (y - MARGIN) // SIDE, (x - MARGIN) // SIDE
+
+            if self.game.start_puzzle[row][col] == 0:
+                self.__set_shadow_rows_and_cols(row - self.shadow.row,
+                                                col - self.shadow.col)
+                self.__set_shadow_cursor()
+
+        self.__draw_shadow_cursor()
+        self.__draw_shadow_puzzle()
 
 
     def __shadow_key_pressed(self, event):
-        pass
+        if self.game.game_over:
+            return
 
+        row, col = self.shadow.row, self.shadow.col
+
+        if row >= 0 and col >= 0 and event.keysym in '123456789':
+            number = int(event.keysym)
+            if self.game.entries[row][col][number - 1] and 1 <= number <= 9:
+                number = int(event.keysym)
+                subrow, subcol = (number - 1) // 3, (number - 1) % 3
+
+                self.__set_shadow_cursor(row=subrow, col=subcol)
+
+                if self.game.entries[row][col][number - 1] == 1:
+                    self.game.entries[row][col][number - 1] = 2
+
+                elif self.game.entries[row][col][number - 1] == 2:
+                    self.game.entries[row][col][number - 1] = 1
+
+            self.__draw_shadow_puzzle()
 
 
 def parse_arguments():
@@ -735,7 +809,7 @@ def main():
 
         root = Tk()
         SudokuUI(root, game)
-        root.geometry('%dx%d' % (2.5 * WIDTH, HEIGHT))
+        root.geometry('%dx%d' % (WIDTH, HEIGHT))
         root.mainloop()
 
 if __name__ == '__main__':
