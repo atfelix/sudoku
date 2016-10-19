@@ -16,6 +16,8 @@ SUDOKU_WIDTH = SUDOKU_HEIGHT = MARGIN * 2 + SIDE * 9
 WIDTH = 2.5 * SUDOKU_WIDTH
 HEIGHT = SUDOKU_HEIGHT + 75
 BUTTON_WIDTH=12
+NO_SHIFT = 96
+SHIFT = 97
 
 class SudokuError(Exception):
     """
@@ -77,8 +79,6 @@ class SudokuGame(object):
                 self.entries[-1].append([-1] * 9)
 
         self.__find_permissible_entries()
-        for x in self.entries:
-            print(x)
 
 
     def start(self):
@@ -442,7 +442,8 @@ class SudokuUI(Frame):
                             color = 'black' if self.game.entries[i][j][number - 1] else bgcolor
 
                             if self.game.entries[i][j][number - 1] == 2:
-                                number = 'X'
+                                number = ' \u274c'
+                                font = ('', 15)
 
                         elif answer == original:
                             bgcolor, number = 'black', answer
@@ -494,6 +495,12 @@ class SudokuUI(Frame):
     def __set_shadow_rows_and_cols(self, row, col):
         self.shadow.row = (self.shadow.row + row) % 9
         self.shadow.col= (self.shadow.col + col) % 9
+        self.__set_shadow_cursor()
+
+
+    def __reset_shadow_rows_and_cols(self):
+        self.shadow.row = self.canvas.row
+        self.shadow.col = self.canvas.col
         self.__set_shadow_cursor()
 
 
@@ -688,6 +695,7 @@ class SudokuUI(Frame):
                                          col - self.canvas.col)
 
         self.__draw_puzzle()
+        self.__reset_shadow_rows_and_cols()
         self.__draw_shadow_puzzle()
 
 
@@ -708,29 +716,25 @@ class SudokuUI(Frame):
                     self.log.append(string)
                     self.listbox.insert(0, string)
 
-            elif event.keysym == 'Left':
-                self.__set_rows_and_cols(0, -1)
+            elif event.keysym in ['Left', 'Right', 'Up', 'Down']:
+
+                if event.keysym == 'Left':
+                    dx, dy = 0, -1
+
+                elif event.keysym == 'Right':
+                    dx, dy = 0, 1
+
+                elif event.keysym == 'Up':
+                    dx, dy = -1, 0
+
+                elif event.keysym == 'Down':
+                    dx, dy = 1, 0
+
+                self.__reset_shadow_rows_and_cols()
+                self.__set_rows_and_cols(dx, dy)
 
                 while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.__set_rows_and_cols(0, -1)
-
-            elif event.keysym == 'Right':
-                self.__set_rows_and_cols(0, 1)
-
-                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.__set_rows_and_cols(0, 1)
-
-            elif event.keysym == 'Up':
-                self.__set_rows_and_cols(-1, 0)
-
-                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.__set_rows_and_cols(-1, 0)
-
-            elif event.keysym == 'Down':
-                self.__set_rows_and_cols(1, 0)
-
-                while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
-                    self.__set_rows_and_cols(1, 0)
+                    self.__set_rows_and_cols(dx, dy)
 
             self.__draw_puzzle()
             self.__draw_shadow_puzzle()
@@ -764,21 +768,76 @@ class SudokuUI(Frame):
 
         row, col = self.shadow.row, self.shadow.col
 
-        if row >= 0 and col >= 0 and event.keysym in '123456789':
-            number = int(event.keysym)
-            if self.game.entries[row][col][number - 1] and 1 <= number <= 9:
+        #print(event.keysym, event.state, event.keycode)
+        #print('=' * 100)
+
+        if row >= 0 and col >= 0:
+            if event.keysym in '123456789':
+
                 number = int(event.keysym)
-                subrow, subcol = (number - 1) // 3, (number - 1) % 3
 
-                self.__set_shadow_cursor(row=subrow, col=subcol)
+                if self.game.entries[row][col][number - 1] and 1 <= number <= 9:
+                    number = int(event.keysym)
+                    subrow, subcol = (number - 1) // 3, (number - 1) % 3
 
-                if self.game.entries[row][col][number - 1] == 1:
-                    self.game.entries[row][col][number - 1] = 2
+                    self.__set_shadow_cursor(row=subrow, col=subcol)
 
-                elif self.game.entries[row][col][number - 1] == 2:
-                    self.game.entries[row][col][number - 1] = 1
+                    if self.game.entries[row][col][number - 1] == 1:
+                        self.game.entries[row][col][number - 1] = 2
+
+                    elif self.game.entries[row][col][number - 1] == 2:
+                        self.game.entries[row][col][number - 1] = 1
+
+            elif event.keysym in ['Left', 'Right', 'Up', 'Down']:
+
+                if event.state == NO_SHIFT:
+
+                    number = self.shadow.subrow * 3 + self.shadow.subcol + 1
+
+                    d_number = 0
+
+                    if event.keysym == 'Left':
+                        d_number = -1
+
+                    elif event.keysym == 'Right':
+                        d_number = 1
+
+                    elif event.keysym == 'Up':
+                        d_number = -3
+
+                    elif event.keysym == 'Down':
+                        d_number = 3
+
+                    number = (number + d_number) % 9
+
+                    while self.game.entries[self.shadow.row][self.shadow.col][number - 1] == 0:
+                        number = (number + d_number) % 9
+
+                    subrow, subcol = (number - 1) // 3, (number - 1) % 3
+                    self.__set_shadow_cursor(row=subrow, col=subcol)
+
+                elif event.state == SHIFT:
+
+                    if event.keysym == 'Left':
+                        dx, dy = 0, -1
+
+                    elif event.keysym == 'Right':
+                        dx, dy = 0, 1
+
+                    elif event.keysym == 'Up':
+                        dx, dy = -1, 0
+
+                    elif event.keysym == 'Down':
+                        dx, dy = 1, 0
+
+                    self.__set_shadow_rows_and_cols(dx, dy)
+
+                    while self.game.start_puzzle[self.shadow.row][self.shadow.col] != 0:
+                        self.__set_shadow_rows_and_cols(dx, dy)
 
             self.__draw_shadow_puzzle()
+
+
 
 
 def parse_arguments():
