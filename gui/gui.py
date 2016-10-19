@@ -70,7 +70,6 @@ class SudokuGame(object):
         self.start_puzzle = SudokuBoard(board_file).board
         self.start()
 
-        #self.entries = [[set(range(1, 10)) for __ in range(9)] for _ in range(9)]
         self.entries = []
         for i in range(9):
             self.entries.append([])
@@ -78,6 +77,8 @@ class SudokuGame(object):
                 self.entries[-1].append([-1] * 9)
 
         self.__find_permissible_entries()
+        for x in self.entries:
+            print(x)
 
 
     def start(self):
@@ -480,8 +481,8 @@ class SudokuUI(Frame):
                 number = i * 3 + j + 1
                 if self.game.entries[self.shadow.row][self.shadow.col][number - 1]:
                     self.shadow.subrow, self.shadow.subcol = i, j
-                if (row == -1 and col == -1) or (row == i and col == j):
-                    return
+                    if (row == -1 and col == -1) or (row == i and col == j):
+                        return
 
 
     def __set_rows_and_cols(self, row, col):
@@ -754,7 +755,6 @@ class SudokuUI(Frame):
                                                 col - self.shadow.col)
                 self.__set_shadow_cursor()
 
-        self.__draw_shadow_cursor()
         self.__draw_shadow_puzzle()
 
 
