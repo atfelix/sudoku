@@ -196,7 +196,7 @@ class SudokuUI(Frame):
         self.canvas = Canvas(self,
                              width=SUDOKU_WIDTH,
                              height=SUDOKU_HEIGHT,
-                             highlightthickness=0)
+                             highlightthickness=1)
 
         self.canvas.grid(column=0, row=1, columnspan=15, rowspan=15)
         self.canvas.row, self.canvas.col = -1, -1
@@ -206,7 +206,7 @@ class SudokuUI(Frame):
         self.shadow = Canvas(self,
                              width=SUDOKU_WIDTH,
                              height=SUDOKU_HEIGHT,
-                             highlightthickness=0)
+                             highlightthickness=1)
 
         self.shadow.grid(column=25, row=1, columnspan=15, rowspan=15)
         self.shadow.row, self.shadow.col = -1, -1
@@ -220,14 +220,17 @@ class SudokuUI(Frame):
         self.__make_log()
         self.__draw_activity_log()
 
+        self.__make_timer()
+
         self.__set_cursor()
-        self.__set_shadow_cursor()
         self.__set_drawing_puzzle_rectangles()
         self.__set_drawing_shadow_puzzle_rectangles()
 
         self.__draw_puzzle()
+        self.__draw_grid(self.canvas)
 
         self.__draw_shadow_puzzle()
+        self.__draw_grid(self.shadow)
 
         # Bind self.__cell_clicked to a mouse click and
         # self.__key_pressed to a key being pressed
@@ -337,15 +340,22 @@ class SudokuUI(Frame):
         shadow_title.grid(column=SUDOKU_WIDTH // SIDE * 2 + 14, row=0)
 
 
-    def draw_timer(self):
-        total_time = int(time.time() - self.__start_time)
-        M, S = divmod(total_time, 60)
-        H, M = divmod(M, 60)
+    def __make_timer(self):
         self.timer = Label(self,
-                           text='%.2d:%.2d:%.2d' % (H, M, S),
+                           text='%.2d:%.2d:%.2d' % (0, 0, 0),
                            font=('Palatino', 20),
                            justify=RIGHT)
         self.timer.grid(column=20, row=18)
+
+
+    def draw_timer(self):
+        if self.game.game_over:
+            return
+
+        total_time = int(time.time() - self.__start_time)
+        M, S = divmod(total_time, 60)
+        H, M = divmod(M, 60)
+        self.timer.configure(text='%.2d:%.2d:%.2d' % (H, M, S))
 
 
     def __make_log(self):
@@ -405,11 +415,17 @@ class SudokuUI(Frame):
                 if answer == original != 0:
                     bgcolor, color = 'black', 'white'
 
+                elif answer != 0:
+                    bgcolor = 'cyan'
+                    color = 'black'
+
                 elif self.canvas.row == i or self.canvas.col == j:
-                    bgcolor, color = 'light cyan', 'black'
+                    bgcolor = 'light cyan'
+                    color = 'black'
 
                 elif self.canvas.row // 3 == i // 3 and self.canvas.col // 3 == j // 3:
-                    bgcolor, color = 'light cyan', 'black'
+                    bgcolor = 'light cyan'
+                    color = 'black'
 
                 else:
                     bgcolor, color = 'white', 'black'
@@ -424,7 +440,6 @@ class SudokuUI(Frame):
                                        fill=color)
 
         self.__draw_cursor(self.canvas)
-        self.__draw_grid(self.canvas)
 
         self.canvas.lift('numbers')
 
@@ -445,7 +460,12 @@ class SudokuUI(Frame):
 
 
                         if original == 0:
-                            if self.shadow.row == i or self.shadow.col == j:
+
+                            if answer != 0:
+                                bgcolor = 'cyan'
+                                color = 'black'
+
+                            elif self.shadow.row == i or self.shadow.col == j:
                                 bgcolor = 'light cyan'
 
                             elif self.shadow.row // 3 == i // 3 and self.shadow.col // 3 == j // 3:
@@ -476,8 +496,6 @@ class SudokuUI(Frame):
                                                font=font)
 
         self.__draw_cursor(self.shadow)
-        self.__draw_shadow_cursor()
-        self.__draw_grid(self.shadow)
 
         self.shadow.lift('numbers')
 
@@ -515,13 +533,11 @@ class SudokuUI(Frame):
     def __set_shadow_rows_and_cols(self, row, col):
         self.shadow.row = (self.shadow.row + row) % 9
         self.shadow.col= (self.shadow.col + col) % 9
-        self.__set_shadow_cursor()
 
 
     def __reset_shadow_rows_and_cols(self):
         self.shadow.row = self.canvas.row
         self.shadow.col = self.canvas.col
-        self.__set_shadow_cursor()
 
 
     def __set_drawings(self):
@@ -731,13 +747,13 @@ class SudokuUI(Frame):
 
                     old_number = self.game.puzzle[self.canvas.row][self.canvas.col]
 
-                    if self.game.puzzle[self.canvas.row][self.canvas.col] != 0:
+                    if old_number != 0:
                         self.__toggle_row(old_number, value=1)
                         self.__toggle_col(old_number, value=1)
                         self.__toggle_box(old_number, value=1)
-                        self.__untoggle_cell()
+                        self.__toggle_cell(old_number, value=1)
 
-                    self.game.puzzle[self.canvas.row][self.canvas.col] = int(event.keysym)
+                    self.game.puzzle[self.canvas.row][self.canvas.col] = number
 
                     string = 'Entered %c in row %d column %d' % (event.keysym,
                                                                  self.canvas.row + 1,
@@ -747,6 +763,7 @@ class SudokuUI(Frame):
                     self.__toggle_col(number, value=2)
                     self.__toggle_box(number, value=2)
                     self.__toggle_cell(number, value=2)
+                    self.game.entries[self.canvas.row][self.canvas.col][number - 1] = 1
 
                     if not self.log or string != self.log[-1]:
                         self.log.append(string)
@@ -772,11 +789,22 @@ class SudokuUI(Frame):
                 while self.game.start_puzzle[self.canvas.row][self.canvas.col] != 0:
                     self.__set_rows_and_cols(dx, dy)
 
+            elif event.keysym == 'BackSpace':
+                number = self.game.puzzle[self.canvas.row][self.canvas.col]
+
+                self.game.puzzle[self.canvas.row][self.canvas.col] = 0
+
+                self.__untoggle_cell()
+                self.__toggle_row(number, value=1)
+                self.__toggle_col(number, value=1)
+                self.__toggle_box(number, value=1)
+
             self.__draw_puzzle()
             self.__draw_shadow_puzzle()
 
             if self.game.check_win():
                 self.__draw_victory()
+
 
     def __shadow_cell_clicked(self, event):
 
@@ -792,19 +820,15 @@ class SudokuUI(Frame):
             subrow = ((y - MARGIN) - row * SIDE) // (SIDE // 3)
             subcol = ((x - MARGIN) - col * SIDE) // (SIDE // 3)
 
-            if (row, col) == (self.shadow.row, self.shadow.col):
+            self.__set_shadow_rows_and_cols(row - self.shadow.row,
+                                            col - self.shadow.col)
 
-                if (subrow == self.shadow.subrow and
-                        subcol == self.shadow.subcol):
-                    self.__toggle_subrow_and_subcol(row, col, subrow*3+subcol)
-                elif self.game.entries[self.shadow.row][self.shadow.col][subrow * 3 + subcol]:
-                    self.__set_shadow_cursor(row=subrow, col=subcol)
+            self.__toggle_subrow_and_subcol(row, col, subrow*3+subcol)
 
 
-            elif self.game.start_puzzle[row][col] == 0:
+            if self.game.start_puzzle[row][col] == 0:
                 self.__set_shadow_rows_and_cols(row - self.shadow.row,
                                                 col - self.shadow.col)
-                self.__set_shadow_cursor(row=subrow, col=subcol)
 
         self.__draw_shadow_puzzle()
 
@@ -823,8 +847,6 @@ class SudokuUI(Frame):
                 if self.game.entries[row][col][number - 1] and 1 <= number <= 9:
                     number = int(event.keysym)
                     subrow, subcol = (number - 1) // 3, (number - 1) % 3
-
-                    self.__set_shadow_cursor(row=subrow, col=subcol)
 
                     if self.game.entries[row][col][number - 1] == 1:
                         self.game.entries[row][col][number - 1] = 2
@@ -858,7 +880,6 @@ class SudokuUI(Frame):
                         number = (number + d_number) % 9
 
                     subrow, subcol = (number - 1) // 3, (number - 1) % 3
-                    self.__set_shadow_cursor(row=subrow, col=subcol)
 
                 elif event.state == SHIFT:
 
@@ -972,6 +993,35 @@ class SudokuUI(Frame):
                 self.game.entries[row][col][i] = 1
 
 
+    def __untoggle_row(self, row=-1):
+        if row == -1:
+            row = self.shadow.row
+
+        for col in range(9):
+            self.__untoggle_cell(row=row, col=col)
+
+
+    def __untoggle_column(self, col=-1):
+        if col == -1:
+            col = self.shadow.col
+
+        for row in range(9):
+            self.__untoggle_cell(row=row, col=col)
+
+
+    def __untoggle_box(self, row=-1, col=-1):
+        if row == -1:
+            row = self.shadow.row
+
+        if col == -1:
+            col = self.shadow.col
+
+        box_row, box_col = row // 3, col // 3
+
+        for i in range(3):
+            for j in range(3):
+                pass
+
 
 class App(object):
 
@@ -996,7 +1046,7 @@ def parse_arguments():
     """
 
     arg_parser = argparse.ArgumentParser()
-    arg_parser .add_argument('--board',
+    arg_parser.add_argument('--board',
                              help='Desired board name',
                              type=str,
                              choices=BOARDS,
@@ -1013,11 +1063,6 @@ def main():
 
         game = SudokuGame(boards_file)
         game.start()
-
-        #root = Tk()
-        #SudokuUI(root, game)
-        #root.geometry('%dx%d' % (WIDTH, HEIGHT))
-        #root.mainloop()
 
         App(game)
 
