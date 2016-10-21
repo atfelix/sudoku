@@ -87,11 +87,111 @@ class SudokuGame(object):
     def start(self):
         self.game_over = False
         self.puzzle = []
+        self.__reset_entries()
 
+
+
+    def __reset_entries(self):
+        self.entries = []
         for i in range(9):
             self.puzzle.append([])
+            self.entries.append([])
             for j in range(9):
                 self.puzzle[i].append(self.start_puzzle[i][j])
+                self.entries[-1].append([-1] * 9)
+
+        self.__find_permissible_entries()
+
+
+
+    def update_entries(self):
+        for i in range(9):
+            for j in range(9):
+
+                if self.start_puzzle[i][j] != 0:
+                    continue
+
+                if self.puzzle[i][j] != 0:
+                    for k in range(9):
+                        if k + 1 != self.puzzle[i][j] and self.entries[i][j][k] != 0:
+                            self.entries[i][j][k] = 2
+
+                    self.entries[i][j][self.puzzle[i][j] - 1] = 1
+
+        for i in range(9):
+            for j in range(9):
+
+                if self.start_puzzle[i][j] != 0 or self.puzzle[i][j] != 0:
+                    continue
+
+                for value in range(9):
+                    if self.entries[i][j][value] in [0, 3]:
+                        continue
+
+                    if self.entries[i][j][value] == 1:
+
+                        for row in range(9):
+                            if row == i:
+                                continue
+                            if self.puzzle[row][j] == value + 1:
+                                self.entries[i][j][value] = 2
+
+                        for col in range(9):
+                            if col == j:
+                                continue
+                            if self.puzzle[i][col] == value + 1:
+                                self.entries[i][j][value] = 2
+
+                        _row, _col = i // 3, j // 3
+
+
+                        for ii in range(3):
+                            new_row = 3 * _row + ii
+                            for jj in range(3):
+                                new_col = 3 * _col + jj
+                                if new_row == i and new_col == j:
+                                    continue
+                                if self.puzzle[new_row][new_col] == value + 1:
+                                    self.entries[i][j][value] = 2
+
+                    if self.entries[i][j][value] == 2:
+
+                        change = True
+
+                        for row in range(9):
+                            if row == i:
+                                continue
+                            if self.puzzle[row][j] == value + 1:
+                                change &= False
+
+                        for col in range(9):
+                            if col == j:
+                                continue
+                            if self.puzzle[i][col] == value + 1:
+                                change &= False
+
+                        _row, _col = i // 3, j // 3
+
+                        for ii in range(3):
+                            new_row = 3 * _row + ii
+                            for jj in range(3):
+                                new_col = 3 * _col + jj
+                                if new_row == i and new_col == j:
+                                    continue
+                                if self.puzzle[new_row][new_col] == value + 1:
+                                    change &= False
+
+                        if change:
+                            self.entries[i][j][value] = 1
+
+            if self.puzzle[i][j] == 0:
+                continue
+
+            for k in range(9):
+                if k != self.puzzle[i][j] - 1:
+                    self.entries[i][j][k] = 2
+
+
 
 
     def check_win(self):
@@ -396,7 +496,7 @@ class SudokuUI(Frame):
                                yscrollcommand=self.scrollbar.set,
                                borderwidth=0,
                                font=('Palatino', 15),
-                               width=25,
+                               width=30,
                                height=29)
 
         self.listbox.grid(column=20, row=1)
@@ -405,6 +505,8 @@ class SudokuUI(Frame):
 
 
     def __draw_puzzle(self):
+
+        self.game.update_entries()
 
         for i in range(9):
             for j in range(9):
@@ -476,9 +578,14 @@ class SudokuUI(Frame):
 
                             color = 'black' if self.game.entries[i][j][number - 1] else bgcolor
 
-                            if self.game.entries[i][j][number - 1] == 2:
+                            if self.game.entries[i][j][number - 1] >= 2:
+
+                                if self.game.entries[i][j][number - 1] == 3:
+                                    color = 'red'
+
                                 number = '\u2716'
                                 font = ('', 15)
+
 
                         elif answer == original:
                             bgcolor, number = 'black', answer
@@ -675,22 +782,52 @@ class SudokuUI(Frame):
         self.game.start()
         self.canvas.delete('victory')
         self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
 
 
     def __clear_row(self):
-        pass
+        row, col = self.canvas.row, self.canvas.col
+
+        if row >= 0 and col >= 0:
+            for i in range(9):
+                if self.game.start_puzzle[row][i] == 0:
+                    self.game.puzzle[row][i] = 0
+
+        self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
 
 
     def __clear_column(self):
-        pass
+        row, col = self.canvas.row, self.canvas.col
+
+        if row >= 0 and col >= 0:
+            for i in range(9):
+                if self.game.start_puzzle[i][col] == 0:
+                    self.game.puzzle[i][col] = 0
+
+        self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
 
 
     def __clear_box(self):
-        pass
+        row, col = self.canvas.row // 3, self.canvas.col // 3
+
+        if row >= 0 and col >= 0:
+            for i in range(3):
+                for j in range(3):
+                    if self.game.start_puzzle[3 * row + i][3 * col + j] == 0:
+                        self.game.puzzle[3 * row + i][3 * col + j] = 0
+
+        self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
 
 
     def __clear_cell(self):
-        pass
+        if self.game.start_puzzle[self.canvas.row][self.canvas.col] == 0:
+            self.game.puzzle[self.canvas.row][self.canvas.col] = 0
+
+        self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
 
 
     def __solve_puzzle(self):
@@ -745,25 +882,13 @@ class SudokuUI(Frame):
 
                 if self.game.entries[self.canvas.row][self.canvas.col][number - 1]:
 
-                    old_number = self.game.puzzle[self.canvas.row][self.canvas.col]
-
-                    if old_number != 0:
-                        self.__toggle_row(old_number, value=1)
-                        self.__toggle_col(old_number, value=1)
-                        self.__toggle_box(old_number, value=1)
-                        self.__toggle_cell(old_number, value=1)
-
                     self.game.puzzle[self.canvas.row][self.canvas.col] = number
 
                     string = 'Entered %c in row %d column %d' % (event.keysym,
                                                                  self.canvas.row + 1,
                                                                  self.canvas.col + 1)
 
-                    self.__toggle_row(number, value=2)
-                    self.__toggle_col(number, value=2)
-                    self.__toggle_box(number, value=2)
-                    self.__toggle_cell(number, value=2)
-                    self.game.entries[self.canvas.row][self.canvas.col][number - 1] = 1
+                    #self.game.entries[self.canvas.row][self.canvas.col][number - 1] = 1
 
                     if not self.log or string != self.log[-1]:
                         self.log.append(string)
@@ -790,14 +915,14 @@ class SudokuUI(Frame):
                     self.__set_rows_and_cols(dx, dy)
 
             elif event.keysym == 'BackSpace':
-                number = self.game.puzzle[self.canvas.row][self.canvas.col]
-
+                char = str(self.game.puzzle[self.canvas.row][self.canvas.col])
                 self.game.puzzle[self.canvas.row][self.canvas.col] = 0
-
-                self.__untoggle_cell()
-                self.__toggle_row(number, value=1)
-                self.__toggle_col(number, value=1)
-                self.__toggle_box(number, value=1)
+                string = 'Deleted %s from row %d column %d' % (char,
+                                                               self.canvas.row + 1,
+                                                               self.canvas.col + 1)
+                if not self.log or string != self.log[-1]:
+                    self.log.append(string)
+                    self.listbox.insert(0, string)
 
             self.__draw_puzzle()
             self.__draw_shadow_puzzle()
@@ -820,13 +945,14 @@ class SudokuUI(Frame):
             subrow = ((y - MARGIN) - row * SIDE) // (SIDE // 3)
             subcol = ((x - MARGIN) - col * SIDE) // (SIDE // 3)
 
-            self.__set_shadow_rows_and_cols(row - self.shadow.row,
-                                            col - self.shadow.col)
-
-            self.__toggle_subrow_and_subcol(row, col, subrow*3+subcol)
-
-
             if self.game.start_puzzle[row][col] == 0:
+                if (self.game.entries[row][col][subrow * 3 + subcol] == 1
+                        and self.game.puzzle[row][col] == 0):
+                    self.__toggle_subrow_and_subcol(row, col, subrow*3+subcol, value=3)
+
+                elif self.game.entries[row][col][subrow * 3 + subcol] == 3:
+                    self.__toggle_subrow_and_subcol(row, col, subrow*3+subcol, value=1)
+
                 self.__set_shadow_rows_and_cols(row - self.shadow.row,
                                                 col - self.shadow.col)
 
@@ -849,39 +975,14 @@ class SudokuUI(Frame):
                     subrow, subcol = (number - 1) // 3, (number - 1) % 3
 
                     if self.game.entries[row][col][number - 1] == 1:
-                        self.game.entries[row][col][number - 1] = 2
+                        self.game.entries[row][col][number - 1] = 3
 
-                    elif self.game.entries[row][col][number - 1] == 2:
+                    elif self.game.entries[row][col][number - 1] == 3:
                         self.game.entries[row][col][number - 1] = 1
 
             elif event.keysym in ['Left', 'Right', 'Up', 'Down']:
 
                 if event.state == NO_SHIFT:
-
-                    number = self.shadow.subrow * 3 + self.shadow.subcol + 1
-
-                    d_number = 0
-
-                    if event.keysym == 'Left':
-                        d_number = -1
-
-                    elif event.keysym == 'Right':
-                        d_number = 1
-
-                    elif event.keysym == 'Up':
-                        d_number = -3
-
-                    elif event.keysym == 'Down':
-                        d_number = 3
-
-                    number = (number + d_number) % 9
-
-                    while self.game.entries[self.shadow.row][self.shadow.col][number - 1] == 0:
-                        number = (number + d_number) % 9
-
-                    subrow, subcol = (number - 1) // 3, (number - 1) % 3
-
-                elif event.state == SHIFT:
 
                     if event.keysym == 'Left':
                         dx, dy = 0, -1
@@ -922,7 +1023,8 @@ class SudokuUI(Frame):
 
         for x in range(9):
             if self.game.entries[row][x][number - 1] != 0 and x != self.shadow.col:
-                self.__toggle_subrow_and_subcol(row, x, number - 1, value=value)
+                pass
+                #self.__toggle_subrow_and_subcol(row, x, number - 1, value=value)
 
 
     def __toggle_col(self, number, value=-1, col=-1):
@@ -932,7 +1034,8 @@ class SudokuUI(Frame):
 
         for x in range(9):
             if self.game.entries[x][col][number - 1] != 0 and x != self.shadow.row:
-                self.__toggle_subrow_and_subcol(x, col, number - 1, value=value)
+                pass
+                #self.__toggle_subrow_and_subcol(x, col, number - 1, value=value)
 
 
     def __toggle_box(self, number, value=-1, row=-1, col=-1):
@@ -953,10 +1056,11 @@ class SudokuUI(Frame):
                 if new_row != row or new_col != col:
 
                     if self.game.entries[new_row][new_col][number - 1] != 0:
-                        self.__toggle_subrow_and_subcol(new_row,
-                                                        new_col,
-                                                        number - 1,
-                                                        value=value)
+                        pass
+                        #self.__toggle_subrow_and_subcol(new_row,
+                                                        #new_col,
+                                                        #number - 1,
+                                                        #value=value)
 
 
     def __toggle_cell(self, number, value=-1, row=-1, col=-1):
@@ -979,6 +1083,22 @@ class SudokuUI(Frame):
 
                 elif self.game.entries[row][col][i] == 2 and number - 1 != i:
                     self.game.entries[row][col][i] = 1
+
+
+    def __toggle_all(self, number, value=-1, row=-1, col=-1, cell=False):
+        if row == -1:
+            row = self.shadow.row
+
+        if col == -1:
+            col = self.shadow.col
+
+        #self.__toggle_row(number, row=row, value=value)
+        #self.__toggle_col(number, col=col, value=value)
+        #self.__toggle_box(number, row=row, col=col, value=value)
+
+        if cell:
+            pass
+            #self.__toggle_cell(number, row=row, col=col, value=value)
 
 
     def __untoggle_cell(self, row=-1, col=-1):
