@@ -5,7 +5,7 @@
 import argparse
 import time
 
-from tkinter import Tk, Canvas, Frame, Label, Listbox, Button, Scrollbar
+from tkinter import Tk, Canvas, Frame, Label, Listbox, Button, Scrollbar, Menu
 from tkinter import BOTH, TOP, BOTTOM, LEFT, RIGHT, X, Y, N, E, S, W, VERTICAL
 
 ### Constants
@@ -462,6 +462,7 @@ class SudokuUI(Frame):
         self.log = []
 
 
+
     # Helper function for __initUI
 
     def __draw_grid(self, grid):
@@ -888,8 +889,6 @@ class SudokuUI(Frame):
                                                                  self.canvas.row + 1,
                                                                  self.canvas.col + 1)
 
-                    #self.game.entries[self.canvas.row][self.canvas.col][number - 1] = 1
-
                     if not self.log or string != self.log[-1]:
                         self.log.append(string)
                         self.listbox.insert(0, string)
@@ -1016,132 +1015,6 @@ class SudokuUI(Frame):
             self.game.entries[row][col][number] = 1
 
 
-    def __toggle_row(self, number, value=-1, row=-1):
-
-        if row == -1:
-            row = self.shadow.row
-
-        for x in range(9):
-            if self.game.entries[row][x][number - 1] != 0 and x != self.shadow.col:
-                pass
-                #self.__toggle_subrow_and_subcol(row, x, number - 1, value=value)
-
-
-    def __toggle_col(self, number, value=-1, col=-1):
-
-        if col == -1:
-            col = self.shadow.col
-
-        for x in range(9):
-            if self.game.entries[x][col][number - 1] != 0 and x != self.shadow.row:
-                pass
-                #self.__toggle_subrow_and_subcol(x, col, number - 1, value=value)
-
-
-    def __toggle_box(self, number, value=-1, row=-1, col=-1):
-        if row == -1:
-            row = self.shadow.row
-
-        if col == -1:
-            col = self.shadow.col
-
-        _row, _col = row - (row % 3), col - (col % 3)
-
-        for i in range(3):
-            new_row = _row + i
-
-            for j in range(3):
-                new_col = _col + j
-
-                if new_row != row or new_col != col:
-
-                    if self.game.entries[new_row][new_col][number - 1] != 0:
-                        pass
-                        #self.__toggle_subrow_and_subcol(new_row,
-                                                        #new_col,
-                                                        #number - 1,
-                                                        #value=value)
-
-
-    def __toggle_cell(self, number, value=-1, row=-1, col=-1):
-
-        if row == -1:
-            row = self.shadow.row
-
-        if col == -1:
-            col = self.shadow.col
-
-        if value != -1:
-            for i in range(9):
-                if self.game.entries[row][col][i] != 0 and number - 1 != i:
-                    self.game.entries[row][col][i] = value
-
-        else:
-            for i in range(9):
-                if self.game.entries[row][col][i] == 1 and number - 1 != i:
-                    self.game.entries[row][col][i] = 2
-
-                elif self.game.entries[row][col][i] == 2 and number - 1 != i:
-                    self.game.entries[row][col][i] = 1
-
-
-    def __toggle_all(self, number, value=-1, row=-1, col=-1, cell=False):
-        if row == -1:
-            row = self.shadow.row
-
-        if col == -1:
-            col = self.shadow.col
-
-        #self.__toggle_row(number, row=row, value=value)
-        #self.__toggle_col(number, col=col, value=value)
-        #self.__toggle_box(number, row=row, col=col, value=value)
-
-        if cell:
-            pass
-            #self.__toggle_cell(number, row=row, col=col, value=value)
-
-
-    def __untoggle_cell(self, row=-1, col=-1):
-        if row == -1:
-            row = self.shadow.row
-
-        if col == -1:
-            col = self.shadow.col
-
-        for i in range(9):
-            if self.game.entries[row][col][i] != 0:
-                self.game.entries[row][col][i] = 1
-
-
-    def __untoggle_row(self, row=-1):
-        if row == -1:
-            row = self.shadow.row
-
-        for col in range(9):
-            self.__untoggle_cell(row=row, col=col)
-
-
-    def __untoggle_column(self, col=-1):
-        if col == -1:
-            col = self.shadow.col
-
-        for row in range(9):
-            self.__untoggle_cell(row=row, col=col)
-
-
-    def __untoggle_box(self, row=-1, col=-1):
-        if row == -1:
-            row = self.shadow.row
-
-        if col == -1:
-            col = self.shadow.col
-
-        box_row, box_col = row // 3, col // 3
-
-        for i in range(3):
-            for j in range(3):
-                pass
-
 
 class App(object):
 
@@ -1150,12 +1023,31 @@ class App(object):
         self.ui = SudokuUI(self.root, game)
         self.root.geometry('%dx%d' % (WIDTH, HEIGHT))
         self.__update_timer()
+        self.__make_menus()
         self.root.mainloop()
 
 
     def __update_timer(self):
         self.ui.draw_timer()
         self.root.after(1000, self.__update_timer)
+
+
+    def __make_menus(self):
+        self.menubar = Menu(self.root)
+        self.ui.canvas.config(menu=self.menubar)
+
+        menu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='File', menu=menu)
+        menu.add_command(label='New')
+
+        menu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='Edit', menu=menu)
+        menu.add_command(label='Undo')
+        menu.add_command(label='Undo multiple moves')
+        menu.add_command(label='Redo')
+        menu.add_command(label='Redo multiple moves')
+
+
 
 
 def parse_arguments():
