@@ -1034,7 +1034,6 @@ class App(object):
 
     def __make_menus(self):
         self.menubar = Menu(self.root)
-        self.ui.canvas.config(menu=self.menubar)
 
         menu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='File', menu=menu)
@@ -1046,6 +1045,7 @@ class App(object):
         menu.add_command(label='Undo multiple moves')
         menu.add_command(label='Redo')
         menu.add_command(label='Redo multiple moves')
+        self.root.config(menu=self.menubar)
 
 
 
