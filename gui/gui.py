@@ -4,9 +4,11 @@
 
 import argparse
 import time
+import _tkinter
 
 from tkinter import Tk, Canvas, Frame, Label, Listbox, Button, Scrollbar, Menu
 from tkinter import BOTH, TOP, BOTTOM, LEFT, RIGHT, X, Y, N, E, S, W, VERTICAL
+from tkinter import DISABLED, NORMAL, ACTIVE, END
 
 from sudokugame import SudokuGame
 
@@ -46,8 +48,6 @@ class SudokuUI(Frame):
 
         self.grid()
 
-        # The sudoku grid
-
         self.canvas = Canvas(self,
                              width=SUDOKU_WIDTH,
                              height=SUDOKU_HEIGHT,
@@ -55,8 +55,6 @@ class SudokuUI(Frame):
 
         self.canvas.grid(column=0, row=1, columnspan=15, rowspan=15)
         self.canvas.row, self.canvas.col = -1, -1
-
-        # The shadow sudoku grid
 
         self.shadow = Canvas(self,
                              width=SUDOKU_WIDTH,
@@ -86,9 +84,6 @@ class SudokuUI(Frame):
 
         self.__draw_shadow_puzzle()
         self.__draw_grid(self.shadow)
-
-        # Bind self.__cell_clicked to a mouse click and
-        # self.__key_pressed to a key being pressed
 
         self.canvas.bind('<Button-1>', self.__cell_clicked)
         self.canvas.bind('<Key>', self.__key_pressed)
@@ -260,9 +255,10 @@ class SudokuUI(Frame):
         self.scrollbar['command'] = self.listbox.yview
 
 
-    def __draw_puzzle(self):
+    def __draw_puzzle(self, update=True):
 
-        self.game.update_entries()
+        if update:
+            self.game.update_entries()
 
         for i in range(9):
             for j in range(9):
@@ -270,20 +266,20 @@ class SudokuUI(Frame):
                 answer = self.game.puzzle[i][j]
                 original = self.game.start_puzzle[i][j]
 
-                if answer == original != 0:
+                if 4 in self.game.entries[i][j]:
+                    bgcolor, color = 'red', 'black'
+
+                elif answer == original != 0:
                     bgcolor, color = 'black', 'white'
 
                 elif answer != 0:
-                    bgcolor = 'cyan'
-                    color = 'black'
+                    bgcolor, color = 'cyan', 'black'
 
                 elif self.canvas.row == i or self.canvas.col == j:
-                    bgcolor = 'light cyan'
-                    color = 'black'
+                    bgcolor, color = 'light cyan', 'black'
 
                 elif self.canvas.row // 3 == i // 3 and self.canvas.col // 3 == j // 3:
-                    bgcolor = 'light cyan'
-                    color = 'black'
+                    bgcolor, color = 'light cyan', 'black'
 
                 else:
                     bgcolor, color = 'white', 'black'
@@ -298,6 +294,7 @@ class SudokuUI(Frame):
                                        fill=color)
 
         self.__draw_cursor(self.canvas)
+
 
         self.canvas.lift('numbers')
 
@@ -462,6 +459,11 @@ class SudokuUI(Frame):
                         self.shadow.text[-1][-1][-1].append(text)
 
 
+    def draw_puzzles(self):
+        self.__draw_puzzle()
+        self.__draw_shadow_puzzle()
+
+
     def __draw_cursor(self, grid):
 
         """
@@ -537,8 +539,7 @@ class SudokuUI(Frame):
     def __clear_puzzle(self):
         self.game.start()
         self.canvas.delete('victory')
-        self.__draw_puzzle()
-        self.__draw_shadow_puzzle()
+        self.draw_puzzles()
 
 
     def __clear_row(self):
@@ -549,8 +550,7 @@ class SudokuUI(Frame):
                 if self.game.start_puzzle[row][i] == 0:
                     self.game.puzzle[row][i] = 0
 
-        self.__draw_puzzle()
-        self.__draw_shadow_puzzle()
+        self.draw_puzzles()
 
 
     def __clear_column(self):
@@ -561,8 +561,7 @@ class SudokuUI(Frame):
                 if self.game.start_puzzle[i][col] == 0:
                     self.game.puzzle[i][col] = 0
 
-        self.__draw_puzzle()
-        self.__draw_shadow_puzzle()
+        self.draw_puzzles()
 
 
     def __clear_box(self):
@@ -574,16 +573,14 @@ class SudokuUI(Frame):
                     if self.game.start_puzzle[3 * row + i][3 * col + j] == 0:
                         self.game.puzzle[3 * row + i][3 * col + j] = 0
 
-        self.__draw_puzzle()
-        self.__draw_shadow_puzzle()
+        self.draw_puzzles()
 
 
     def __clear_cell(self):
         if self.game.start_puzzle[self.canvas.row][self.canvas.col] == 0:
             self.game.puzzle[self.canvas.row][self.canvas.col] = 0
 
-        self.__draw_puzzle()
-        self.__draw_shadow_puzzle()
+        self.draw_puzzles()
 
 
     def __solve_puzzle(self):
@@ -623,8 +620,7 @@ class SudokuUI(Frame):
                 self.__set_rows_and_cols(row - self.canvas.row,
                                          col - self.canvas.col)
 
-        self.__draw_puzzle()
-        self.__draw_shadow_puzzle()
+        self.draw_puzzles()
 
 
     def __key_pressed(self, event):
@@ -636,7 +632,7 @@ class SudokuUI(Frame):
             if event.keysym in '123456789':
                 number = int(event.keysym)
 
-                if self.game.entries[self.canvas.row][self.canvas.col][number - 1]:
+                if self.game.entries[self.canvas.row][self.canvas.col][number - 1] == 1:
 
                     self.game.puzzle[self.canvas.row][self.canvas.col] = number
 
@@ -645,8 +641,28 @@ class SudokuUI(Frame):
                                                                  self.canvas.col + 1)
 
                     if not self.log or string != self.log[-1]:
-                        self.log.append(string)
+                        self.log.append(int('%d%d%c' % (self.canvas.row + 1,
+                                                        self.canvas.col + 1,
+                                                        event.keysym)))
                         self.listbox.insert(0, string)
+
+                elif self.game.entries[self.canvas.row][self.canvas.col][number - 1] in [0, 2]:
+                    contradictions = self.__offending_entries(number)
+
+                    if contradictions:
+                        for _row, _col in contradictions:
+                            self.canvas.itemconfig(self.canvas.rectangles[_row][_col],
+                                                   fill='yellow',
+                                                   outline='yellow',
+                                                   width=1)
+
+                            self.canvas.itemconfig(self.canvas.text[_row][_col],
+                                                   fill='red')
+                        self.canvas.update()
+                        time.sleep(0.2)
+
+                    else:
+                        self.game.puzzle[self.canvas.row][self.canvas.col] = number
 
             elif event.keysym in ['Left', 'Right', 'Up', 'Down']:
 
@@ -679,8 +695,7 @@ class SudokuUI(Frame):
                         self.log.append(string)
                         self.listbox.insert(0, string)
 
-            self.__draw_puzzle()
-            self.__draw_shadow_puzzle()
+            self.draw_puzzles()
 
             if self.game.check_win():
                 self.__draw_victory()
@@ -771,6 +786,36 @@ class SudokuUI(Frame):
             self.game.entries[row][col][number] = 1
 
 
+    def __offending_entries(self, number, row=-1, col=-1):
+        if row == -1:
+            row = self.canvas.row
+
+        if col == -1:
+            col = self.canvas.col
+
+        contradictions = []
+
+        for i in range(9):
+            if i != row and self.game.puzzle[i][col] == number:
+                contradictions.append((i, col))
+
+        for j in range(9):
+            if j != col and self.game.puzzle[row][j] == number:
+                contradictions.append((row, j))
+
+        _row, _col = row // 3, col // 3
+
+        for ii in range(3):
+            for jj in range(3):
+                cell_row, cell_col = _row * 3 + ii, _col * 3 + jj
+                if cell_row == row and cell_col == col:
+                    continue
+                if self.game.puzzle[cell_row][cell_col] == number:
+                    contradictions.append((cell_row, cell_col))
+
+        return contradictions
+
+
 
 class App(object):
 
@@ -778,8 +823,13 @@ class App(object):
         self.root = Tk()
         self.ui = SudokuUI(self.root, game)
         self.root.geometry('%dx%d' % (WIDTH, HEIGHT))
+        self.__undo_stack = self.ui.log
+        self.__redo_stack = []
         self.__update_timer()
         self.__make_menus()
+        self.root.bind('<Command-z>', lambda _: self.__undo_move())
+        self.root.bind('<Command-Shift-z>', lambda _: self.__redo_move())
+        self.ui.listbox.bind('<Double-1>', lambda _: self.__undo_n_moves())
         self.root.mainloop()
 
 
@@ -792,17 +842,193 @@ class App(object):
         self.menubar = Menu(self.root)
 
         menu = Menu(self.menubar, tearoff=0)
+
         self.menubar.add_cascade(label='File', menu=menu)
-        menu.add_command(label='New')
+        menu.add_command(label='New',
+                         state=NORMAL,
+                         command=self.__new_game,
+                         accelerator='Command+N')
+        menu.add_command(label='Open',
+                         state=NORMAL,
+                         command=self.__open_game,
+                         accelerator='Command+O')
+        menu.add_command(label='Save Game',
+                         state=NORMAL,
+                         command=self.__save_game,
+                         accelerator='Command+S')
+        menu.add_command(label='Save Game As',
+                         state=NORMAL,
+                         command=self.__save_as,
+                         accelerator='Command+Shift+S')
+        menu.add_separator()
+        menu.add_command(label='Exit',
+                         state=NORMAL,
+                         command=self.root.quit,
+                         accelerator='Command+Q')
 
         menu = Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=menu)
-        menu.add_command(label='Undo')
-        menu.add_command(label='Undo multiple moves')
-        menu.add_command(label='Redo')
-        menu.add_command(label='Redo multiple moves')
+        menu.add_command(label='Undo',
+                         state=NORMAL,
+                         command=self.__undo_move(),
+                         accelerator='Command+Z')
+        menu.add_command(label='Redo',
+                         state=NORMAL,
+                         command=self.__redo_move(),
+                         accelerator='Command+Shift+Z')
         self.root.config(menu=self.menubar)
 
+        menu = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(label='Help', menu=menu)
+        menu.add_command(label='Clear Puzzle',
+                         state=NORMAL,
+                         command=self.__clear_puzzle)
+        menu.add_command(label='Clear Row',
+                         state=NORMAL,
+                         command=self.__clear_row)
+        menu.add_command(label='Clear Column',
+                         state=NORMAL,
+                         command=self.__clear_column)
+        menu.add_command(label='Clear Box',
+                         state=NORMAL,
+                         command=self.__clear_box)
+        menu.add_command(label='Clear Cell',
+                         state=NORMAL,
+                         command=self.__clear_cell)
+
+        menu.add_separator()
+
+        menu.add_command(label='Solve Puzzle',
+                         state=NORMAL,
+                         command=self.__solve_puzzle)
+        menu.add_command(label='Solve Row',
+                         state=NORMAL,
+                         command=self.__solve_row)
+        menu.add_command(label='Solve Column',
+                         state=NORMAL,
+                         command=self.__solve_column)
+        menu.add_command(label='Solve Box',
+                         state=NORMAL,
+                         command=self.__solve_box)
+        menu.add_command(label='Solve Cell',
+                         state=NORMAL,
+                         command=self.__solve_cell)
+
+        menu.add_separator()
+
+        menu.add_command(label='Tutorials',
+                         state=NORMAL,
+                         command=self.__generate_tutorials)
+
+
+
+
+    def __new_game(self):
+        pass
+
+
+    def __open_game(self):
+        pass
+
+
+    def __save_game(self):
+        pass
+
+
+    def __save_as(self):
+        pass
+
+
+    def __generate_tutorials(self):
+        pass
+
+
+    def __solve_puzzle(self):
+        pass
+
+
+    def __solve_row(self):
+        pass
+
+
+    def __solve_column(self):
+        pass
+
+
+    def __solve_box(self):
+        pass
+
+
+    def __solve_cell(self):
+        pass
+
+
+    def __clear_puzzle(self):
+        pass
+
+
+    def __clear_row(self):
+        pass
+
+
+    def __clear_column(self):
+        pass
+
+
+    def __clear_box(self):
+        pass
+
+
+    def __clear_cell(self):
+        pass
+
+
+
+    def __undo_move(self):
+        if self.__undo_stack:
+            self.ui.listbox.delete(0)
+            number = self.__undo_stack.pop()
+
+            row, col = number // 100 - 1, (number % 100) // 10 - 1
+
+            for i in range(len(self.__undo_stack) - 1, -1, -1):
+                x = self.__undo_stack[i]
+                x_row, x_col = x // 100 - 1, (x % 100) // 10 - 1
+
+                if x_row == row and x_col == col:
+                    self.ui.game.puzzle[row][col] = x % 10
+                    break
+
+            else:
+                self.ui.game.puzzle[row][col] = 0
+            self.__redo_stack.append(number)
+
+            self.ui.draw_puzzles()
+
+
+    def __undo_n_moves(self):
+        try:
+            index = self.ui.listbox.curselection()[0]
+        except:
+            index = -1
+
+
+        for i in range(index + 1):
+            self.__undo_move()
+
+
+    def __redo_move(self):
+        if self.__redo_stack:
+            number = self.__redo_stack.pop()
+
+            row, col = number // 100 - 1, (number % 100) // 10 - 1
+            entry = number % 10
+
+            self.ui.game.puzzle[row][col] = entry
+
+            self.__undo_stack.append(number)
+
+            self.ui.draw_puzzles()
 
 
 

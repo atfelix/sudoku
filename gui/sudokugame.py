@@ -164,12 +164,6 @@ class SudokuGame(object):
                         if change:
                             self.entries[i][j][value] = 1
 
-            if self.puzzle[i][j] == 0:
-                continue
-
-            for k in range(9):
-                if k != self.puzzle[i][j] - 1:
-                    self.entries[i][j][k] = 2
 
 
     def check_win(self):
