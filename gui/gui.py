@@ -5,9 +5,7 @@
 import argparse
 import time
 
-from tkinter import Tk, Canvas, Frame, Label, Listbox, Button, Scrollbar, Menu
-from tkinter import BOTH, TOP, BOTTOM, LEFT, RIGHT, X, Y, N, E, S, W, VERTICAL
-from tkinter import DISABLED, NORMAL, ACTIVE, END
+import tkinter as tk
 
 from sudokugame import SudokuGame
 
@@ -24,7 +22,7 @@ NO_SHIFT = 96
 SHIFT = 97
 
 
-class SudokuUI(Frame):
+class SudokuUI(tk.Frame):
     """
     The Tkinter UI, responsible for drawing the board
     and accepting user input.
@@ -36,7 +34,7 @@ class SudokuUI(Frame):
         self.parent = parent
         self.__start_time = time.time()
 
-        Frame.__init__(self, parent)
+        tk.Frame.__init__(self, parent)
 
         self.__initUI()
 
@@ -47,7 +45,7 @@ class SudokuUI(Frame):
 
         self.grid()
 
-        self.canvas = Canvas(self,
+        self.canvas = tk.Canvas(self,
                              width=SUDOKU_WIDTH,
                              height=SUDOKU_HEIGHT,
                              highlightthickness=1)
@@ -55,7 +53,7 @@ class SudokuUI(Frame):
         self.canvas.grid(column=0, row=1, columnspan=15, rowspan=15)
         self.canvas.row, self.canvas.col = -1, -1
 
-        self.shadow = Canvas(self,
+        self.shadow = tk.Canvas(self,
                              width=SUDOKU_WIDTH,
                              height=SUDOKU_HEIGHT,
                              highlightthickness=1)
@@ -84,10 +82,10 @@ class SudokuUI(Frame):
         self.__draw_shadow_puzzle()
         self.__draw_grid(self.shadow)
 
-        self.canvas.bind('<Button-1>', self.__cell_clicked)
+        self.canvas.bind('<tk.Button-1>', self.__cell_clicked)
         self.canvas.bind('<Key>', self.__key_pressed)
 
-        self.shadow.bind('<Button-1>', self.__shadow_cell_clicked)
+        self.shadow.bind('<tk.Button-1>', self.__shadow_cell_clicked)
         self.shadow.bind('<Key>', self.__shadow_key_pressed)
 
 
@@ -99,31 +97,31 @@ class SudokuUI(Frame):
 
     def __make_clear_buttons(self):
 
-        clear_puzzle_button = Button(self,
+        clear_puzzle_button = tk.Button(self,
                                      text='Clear Puzzle',
                                      command=self.__clear_puzzle,
                                      width=BUTTON_WIDTH)
         clear_puzzle_button.grid(column=0, row=20)
 
-        clear_row_button = Button(self,
+        clear_row_button = tk.Button(self,
                                   text='Clear Row',
                                   command=self.__clear_row,
                                   width=BUTTON_WIDTH)
         clear_row_button.grid(column=2, row=20)
 
-        clear_column_button = Button(self,
+        clear_column_button = tk.Button(self,
                                      text='Clear Column',
                                      command=self.__clear_column,
                                      width=BUTTON_WIDTH)
         clear_column_button.grid(column=4, row=20)
 
-        clear_box_button = Button(self,
+        clear_box_button = tk.Button(self,
                                   text='Clear Box',
                                   command=self.__clear_box,
                                   width=BUTTON_WIDTH)
         clear_box_button.grid(column=6, row=20)
 
-        clear_cell_button = Button(self,
+        clear_cell_button = tk.Button(self,
                                    text='Clear Cell',
                                    command=self.__clear_cell,
                                    width=BUTTON_WIDTH)
@@ -132,31 +130,31 @@ class SudokuUI(Frame):
 
     def __make_solve_buttons(self):
 
-        solve_puzzle_button = Button(self,
+        solve_puzzle_button = tk.Button(self,
                                      text='Solve Puzzle',
                                      command=self.__solve_puzzle,
                                      width=BUTTON_WIDTH)
         solve_puzzle_button.grid(column=0, row=18, rowspan=2)
 
-        solve_row_button = Button(self,
+        solve_row_button = tk.Button(self,
                                   text='Solve Row',
                                   command=self.__solve_row,
                                   width=BUTTON_WIDTH)
         solve_row_button.grid(column=2, row=18)
 
-        solve_column_button = Button(self,
+        solve_column_button = tk.Button(self,
                                      text='Solve Column',
                                      command=self.__solve_column,
                                      width=BUTTON_WIDTH)
         solve_column_button.grid(column=4, row=18)
 
-        solve_box_button = Button(self,
+        solve_box_button = tk.Button(self,
                                      text='Solve Box',
                                      command=self.__solve_box,
                                      width=BUTTON_WIDTH)
         solve_box_button.grid(column=6, row=18)
 
-        solve_cell_button = Button(self,
+        solve_cell_button = tk.Button(self,
                                      text='Solve Cell',
                                      command=self.__solve_cell,
                                      width=BUTTON_WIDTH)
@@ -165,35 +163,35 @@ class SudokuUI(Frame):
 
     def __draw_activity_log_title(self):
 
-        log_title = Label(self,
+        log_title = tk.Label(self,
                           text='Activity Log',
                           font=('Palatino', 20),
-                          justify=LEFT)
+                          justify=tk.LEFT)
         log_title.grid(column=SUDOKU_WIDTH // SIDE + 11, row=0)
 
     def __draw_canvas_title(self):
 
-        canvas_title = Label(self,
+        canvas_title = tk.Label(self,
                              text='Sudoku Puzzle',
                              font=('Palatino', 20),
-                             justify=LEFT)
+                             justify=tk.LEFT)
         canvas_title.grid(column=SUDOKU_WIDTH // SIDE // 2, row=0)
 
 
     def __draw_shadow_title(self):
 
-        shadow_title = Label(self,
+        shadow_title = tk.Label(self,
                              text='Shadow Puzzle',
                              font=('Palatino', 20),
-                             justify=LEFT)
+                             justify=tk.LEFT)
         shadow_title.grid(column=SUDOKU_WIDTH // SIDE * 2 + 14, row=0)
 
 
     def __make_timer(self):
-        self.timer = Label(self,
+        self.timer = tk.Label(self,
                            text='%.2d:%.2d:%.2d' % (0, 0, 0),
                            font=('Palatino', 20),
-                           justify=RIGHT)
+                           justify=tk.RIGHT)
         self.timer.grid(column=20, row=18)
 
 
@@ -238,11 +236,11 @@ class SudokuUI(Frame):
 
     def __draw_activity_log(self):
 
-        self.scrollbar = Scrollbar(self,
-                                   orient=VERTICAL,
+        self.scrollbar = tk.Scrollbar(self,
+                                   orient=tk.VERTICAL,
                                    elementborderwidth=2)
 
-        self.listbox = Listbox(self,
+        self.listbox = tk.Listbox(self,
                                yscrollcommand=self.scrollbar.set,
                                borderwidth=0,
                                font=('Palatino', 15),
@@ -250,7 +248,7 @@ class SudokuUI(Frame):
                                height=29)
 
         self.listbox.grid(column=20, row=1)
-        self.scrollbar.grid(column=21, row=1, sticky=N+S)
+        self.scrollbar.grid(column=21, row=1, sticky=tk.N+tk.S)
         self.scrollbar['command'] = self.listbox.yview
 
 
@@ -694,7 +692,6 @@ class SudokuUI(Frame):
                         self.log.append(-int('%d%d%c' % (self.canvas.row + 1,
                                                          self.canvas.col + 1,
                                                          char)))
-                        print(self.log)
                         self.listbox.insert(0, string)
 
             self.draw_puzzles()
@@ -822,7 +819,7 @@ class SudokuUI(Frame):
 class App(object):
 
     def __init__(self, game):
-        self.root = Tk()
+        self.root = tk.Tk()
         self.ui = SudokuUI(self.root, game)
         self.root.geometry('%dx%d' % (WIDTH, HEIGHT))
         self.__undo_stack = self.ui.log
@@ -841,85 +838,85 @@ class App(object):
 
 
     def __make_menus(self):
-        self.menubar = Menu(self.root)
+        self.menubar = tk.Menu(self.root)
 
-        menu = Menu(self.menubar, tearoff=0)
+        menu = tk.Menu(self.menubar, tearoff=0)
 
         self.menubar.add_cascade(label='File', menu=menu)
         menu.add_command(label='New',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__new_game,
                          accelerator='Command+N')
         menu.add_command(label='Open',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__open_game,
                          accelerator='Command+O')
         menu.add_command(label='Save Game',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__save_game,
                          accelerator='Command+S')
         menu.add_command(label='Save Game As',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__save_as,
                          accelerator='Command+Shift+S')
         menu.add_separator()
         menu.add_command(label='Exit',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.root.quit,
                          accelerator='Command+Q')
 
-        menu = Menu(self.menubar, tearoff=0)
+        menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Edit', menu=menu)
         menu.add_command(label='Undo',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__undo_move(),
                          accelerator='Command+Z')
         menu.add_command(label='Redo',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__redo_move(),
                          accelerator='Command+Shift+Z')
         self.root.config(menu=self.menubar)
 
-        menu = Menu(self.menubar, tearoff=0)
+        menu = tk.Menu(self.menubar, tearoff=0)
         self.menubar.add_cascade(label='Help', menu=menu)
         menu.add_command(label='Clear Puzzle',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__clear_puzzle)
         menu.add_command(label='Clear Row',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__clear_row)
         menu.add_command(label='Clear Column',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__clear_column)
         menu.add_command(label='Clear Box',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__clear_box)
         menu.add_command(label='Clear Cell',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__clear_cell)
 
         menu.add_separator()
 
         menu.add_command(label='Solve Puzzle',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__solve_puzzle)
         menu.add_command(label='Solve Row',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__solve_row)
         menu.add_command(label='Solve Column',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__solve_column)
         menu.add_command(label='Solve Box',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__solve_box)
         menu.add_command(label='Solve Cell',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__solve_cell)
 
         menu.add_separator()
 
         menu.add_command(label='Tutorials',
-                         state=NORMAL,
+                         state=tk.NORMAL,
                          command=self.__generate_tutorials)
 
 
