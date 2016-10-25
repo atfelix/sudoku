@@ -82,10 +82,10 @@ class SudokuUI(tk.Frame):
         self.__draw_shadow_puzzle()
         self.__draw_grid(self.shadow)
 
-        self.canvas.bind('<tk.Button-1>', self.__cell_clicked)
+        self.canvas.bind('<Button-1>', self.__cell_clicked)
         self.canvas.bind('<Key>', self.__key_pressed)
 
-        self.shadow.bind('<tk.Button-1>', self.__shadow_cell_clicked)
+        self.shadow.bind('<Button-1>', self.__shadow_cell_clicked)
         self.shadow.bind('<Key>', self.__shadow_key_pressed)
 
 
