@@ -4,7 +4,6 @@
 
 import argparse
 import time
-
 import tkinter as tk
 
 from sudokugame import SudokuGame
