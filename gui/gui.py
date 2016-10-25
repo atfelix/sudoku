@@ -4,7 +4,6 @@
 
 import argparse
 import time
-import _tkinter
 
 from tkinter import Tk, Canvas, Frame, Label, Listbox, Button, Scrollbar, Menu
 from tkinter import BOTH, TOP, BOTTOM, LEFT, RIGHT, X, Y, N, E, S, W, VERTICAL
@@ -692,7 +691,10 @@ class SudokuUI(Frame):
                                                                    self.canvas.row + 1,
                                                                    self.canvas.col + 1)
                     if not self.log or string != self.log[-1]:
-                        self.log.append(string)
+                        self.log.append(-int('%d%d%c' % (self.canvas.row + 1,
+                                                         self.canvas.col + 1,
+                                                         char)))
+                        print(self.log)
                         self.listbox.insert(0, string)
 
             self.draw_puzzles()
@@ -988,20 +990,29 @@ class App(object):
         if self.__undo_stack:
             self.ui.listbox.delete(0)
             number = self.__undo_stack.pop()
+            self.__redo_stack.append(number)
 
-            row, col = number // 100 - 1, (number % 100) // 10 - 1
+            if number > 0:
 
-            for i in range(len(self.__undo_stack) - 1, -1, -1):
-                x = self.__undo_stack[i]
-                x_row, x_col = x // 100 - 1, (x % 100) // 10 - 1
+                row, col = number // 100 - 1, (number % 100) // 10 - 1
 
-                if x_row == row and x_col == col:
-                    self.ui.game.puzzle[row][col] = x % 10
-                    break
+                for i in range(len(self.__undo_stack) - 1, -1, -1):
+                    x = self.__undo_stack[i]
+                    x_row, x_col = x // 100 - 1, (x % 100) // 10 - 1
+
+                    if x_row == row and x_col == col:
+                        self.ui.game.puzzle[row][col] = x % 10
+                        break
+
+                else:
+                    self.ui.game.puzzle[row][col] = 0
 
             else:
-                self.ui.game.puzzle[row][col] = 0
-            self.__redo_stack.append(number)
+                number *= -1
+
+                row, col, entry = number // 100 - 1, (number % 100) // 10 - 1, number % 10
+
+                self.ui.game.puzzle[row][col] = entry
 
             self.ui.draw_puzzles()
 
@@ -1009,7 +1020,7 @@ class App(object):
     def __undo_n_moves(self):
         try:
             index = self.ui.listbox.curselection()[0]
-        except:
+        except IndexError:
             index = -1
 
 
@@ -1020,13 +1031,26 @@ class App(object):
     def __redo_move(self):
         if self.__redo_stack:
             number = self.__redo_stack.pop()
-
-            row, col = number // 100 - 1, (number % 100) // 10 - 1
-            entry = number % 10
-
-            self.ui.game.puzzle[row][col] = entry
-
             self.__undo_stack.append(number)
+
+            if number > 0:
+
+                row, col = number // 100 - 1, (number % 100) // 10 - 1
+                entry = number % 10
+
+                self.ui.game.puzzle[row][col] = entry
+
+                string = 'Entered %d in row %d column % d' % (entry, row + 1, col + 1)
+
+            else:
+                number *= -1
+                row, col, entry = number // 100 - 1, (number % 100) // 10 - 1, number % 10
+
+                self.ui.game.puzzle[row][col] = 0
+
+                string = 'Deleted %d in row %d column % d' % (entry, row + 1, col + 1)
+
+            self.ui.listbox.insert(0, string)
 
             self.ui.draw_puzzles()
 
