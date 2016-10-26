@@ -205,13 +205,17 @@ class SudokuGame(object):
 
         return self.__check_block(box)
 
+    def find_permissible_entries(self, start_puzzle=True):
+        self.__find_permissible_entries(start_puzzle=start_puzzle)
 
-    def __find_permissible_entries(self):
+    def __find_permissible_entries(self, start_puzzle=True):
+
+        grid = self.start_puzzle if start_puzzle else self.puzzle
 
         for i in range(9):
             for j in range(9):
 
-                value = self.start_puzzle[i][j]
+                value = grid[i][j]
 
                 if value != 0:
                     self.entries[i][j] = [0] * 9
