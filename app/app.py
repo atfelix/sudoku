@@ -6,7 +6,7 @@ import argparse
 import time
 import tkinter as tk
 
-from gui.gui import SudokuUI
+from gui import SudokuUI
 from sudokugame import SudokuGame
 
 ### Constants
