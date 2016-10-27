@@ -92,6 +92,24 @@ class SudokuSolver(object):
         self.game.find_permissible_entries(start_puzzle=False)
 
 
+    def __keep_going(self):
+        return self.__count_solved() < 81 and self.is_valid()
+
+
+    def __count_candidates(self):
+        count = 0
+
+        for i in range(9):
+            for j in range(9):
+                count += sum(self.game.entries[i][j])
+
+        return count
+
+
+    def solve(self):
+        pass
+
+
 
 def main():
     solver = SudokuSolver(open('n00b.sudoku', 'r'))
