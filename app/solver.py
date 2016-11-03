@@ -5,6 +5,8 @@
 #           Programming Sudoku (Wei-Meng Lee)
 
 
+import unique
+
 from sudokugame import SudokuError, SudokuGame
 
 
@@ -13,9 +15,13 @@ class SudokuSolver(object):
 
     def __init__(self, boardfile):
         self.game = SudokuGame(boardfile)
-        self.__strategies = [[], [], [], []]
+        self.__strategies = [[self.__cleanup, self.__unique], [], [], []]
         self.__strats_used = []
         self.solve()
+
+
+    def __unique(self):
+        return unique.unique(self)
 
 
     def __str__(self):
@@ -40,14 +46,21 @@ class SudokuSolver(object):
 
 
     def cleanup(self):
-        self.__cleanup()
+        return self.__cleanup()
+
+
+    def cleanup_at(self, row, col):
+        return self.__cleanup_at(row, col)
 
 
     def __cleanup(self):
+        truth_value = False
+
         for i in range(9):
             for j in range(9):
 
-                if sum(self.game.entries[i][j]) == 1:
+                if (self.game.puzzle[i][j] == 0
+                        and sum(self.game.entries[i][j]) == 1):
 
                     for k in range(9):
 
@@ -58,6 +71,11 @@ class SudokuSolver(object):
 
                     if problem:
                         self.__reset_value_at(i, j)
+
+                    else:
+                        truth_value |= True
+
+        return truth_value, '__cleanup', -1 , -1, -1
 
 
     def __cleanup_at(self, row, col):
@@ -166,11 +184,12 @@ class SudokuSolver(object):
         i = 0
 
         while i < len(self.__strategies[level]) and self.__keep_going():
-            self.__strategies[level][i](self.game.entries)
-
-            if self.__count_candidates() < n_initial_candidates:
-                self.__strats_used.append(10 * level + k)
+            is_true, name, row, col, val = self.__strategies[level][i]()
+            if is_true or self.__count_candidates() < n_initial_candidates:
+                self.__strats_used.append(10 * level + i)
                 return True
+
+            i+= 1
 
         return False
 
@@ -211,6 +230,7 @@ class SudokuSolver(object):
 def main():
     solver = SudokuSolver(open('n00b.sudoku', 'r'))
     print(solver)
+    print('\n'.join('=' * 40 for _ in range(3)))
     solver = SudokuSolver(open('l33t.sudoku', 'r'))
     print(solver)
 
