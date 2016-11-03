@@ -27,8 +27,6 @@ def __unique_col(sudoku_game, col, char):
             count += 1
             _row = row
 
-    print('__unique_col ===> count = ', count, col)
-
     return (True, _row, col) if count == 1 else (False, -1, -1)
 
 
@@ -53,7 +51,6 @@ def __unique_cleanup(sudoku_game, i, j, k):
 
 
 def unique(sudoku_game):
-    print('unique')
     for i in range(9):
         for j in range(9):
             for k in range(9):
@@ -62,20 +59,14 @@ def unique(sudoku_game):
 
                     if __unique_row(sudoku_game, i, k)[0]:
                         __unique_cleanup(sudoku_game, i, j, k)
-                        print(i, j)
-                        print('====> row, char = ', k + 1)
                         return True, 'unique_row', i, j, k
 
                     if __unique_col(sudoku_game, j, k)[0]:
                         __unique_cleanup(sudoku_game, i, j, k)
-                        print(i, j)
-                        print('====> col, char = ', k + 1)
                         return True, 'unique_col', i, j, k
 
                     if __unique_box(sudoku_game, i, j, k)[0]:
                         __unique_cleanup(sudoku_game, i, j, k)
-                        print(i, j)
-                        print('====> box, char = ', k + 1)
                         return True, 'unique_box', i, j, k
 
     return False, '', -1, -1, -1
