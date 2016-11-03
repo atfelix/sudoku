@@ -535,6 +535,7 @@ class SudokuUI(tk.Frame):
     def __clear_puzzle(self):
         self.game.start()
         self.canvas.delete('victory')
+        self.canvas.delete('winner')
         self.draw_puzzles()
 
 
