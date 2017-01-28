@@ -9,8 +9,6 @@ import unique
 
 from sudokugame import SudokuError, SudokuGame
 
-
-
 class SudokuSolver(object):
 
     def __init__(self, boardfile):

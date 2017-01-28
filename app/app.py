@@ -1,3 +1,4 @@
+#!/Users/Owner1/anaconda3/bin/python3
 # file:     app.py
 # author:   Adam Felix
 # help:     new coder tutorials
@@ -15,7 +16,7 @@ BOARDS = ['debug', 'n00b', 'l33t', 'error']
 MARGIN = 10
 SIDE = 60
 SUDOKU_WIDTH = SUDOKU_HEIGHT = MARGIN * 2 + SIDE * 9
-WIDTH = 2.5 * SUDOKU_WIDTH
+WIDTH = 3 * SUDOKU_WIDTH
 HEIGHT = SUDOKU_HEIGHT + 100
 BUTTON_WIDTH=12
 NO_SHIFT = 96
@@ -26,6 +27,7 @@ class App(object):
 
     def __init__(self, game):
         self.root = tk.Tk()
+        self.root.title('Shadow Sudoku')
         self.ui = SudokuUI(self.root, game)
         self.root.geometry('%dx%d' % (WIDTH, HEIGHT))
         self.__undo_stack = self.ui.log
@@ -35,6 +37,7 @@ class App(object):
         self.root.bind('<Command-z>', lambda _: self.__undo_move())
         self.root.bind('<Command-Shift-z>', lambda _: self.__redo_move())
         self.ui.listbox.bind('<Double-1>', lambda _: self.__undo_n_moves())
+        self.root.focus_set()
         self.root.mainloop()
 
 
@@ -43,89 +46,84 @@ class App(object):
         self.root.after(1000, self.__update_timer)
 
 
+    def __make_file_item(self, menu, label, state, command, accelerator):
+
+        menu.add_command(label=label,
+                         state=state,
+                         command=command,
+                         accelerator=accelerator)
+
+
     def __make_menus(self):
         self.menubar = tk.Menu(self.root)
 
         menu = tk.Menu(self.menubar, tearoff=0)
 
+        labels = ['New', 'Open', 'Save Game', 'Save Game As']
+        states = [tk.NORMAL] * 4
+        commands = [self.__new_game, self.__open_game,
+                   self.__save_game, self.__save_game_as]
+        accelerators = ['Command+' + s for s in ['N', 'O', 'S', 'Shift+S']]
+
         self.menubar.add_cascade(label='File', menu=menu)
-        menu.add_command(label='New',
-                         state=tk.NORMAL,
-                         command=self.__new_game,
-                         accelerator='Command+N')
-        menu.add_command(label='Open',
-                         state=tk.NORMAL,
-                         command=self.__open_game,
-                         accelerator='Command+O')
-        menu.add_command(label='Save Game',
-                         state=tk.NORMAL,
-                         command=self.__save_game,
-                         accelerator='Command+S')
-        menu.add_command(label='Save Game As',
-                         state=tk.NORMAL,
-                         command=self.__save_as,
-                         accelerator='Command+Shift+S')
+
+
+        for _ in zip(labels, states, commands, accelerators):
+            self.__make_file_item(menu, *_)
+
         menu.add_separator()
-        menu.add_command(label='Exit',
-                         state=tk.NORMAL,
-                         command=self.root.quit,
-                         accelerator='Command+Q')
+        self.__make_file_item(menu, 'Exit', tk.NORMAL, self.root.quit, 'Command+Q')
+
 
         menu = tk.Menu(self.menubar, tearoff=0)
+
         self.menubar.add_cascade(label='Edit', menu=menu)
-        menu.add_command(label='Undo',
-                         state=tk.NORMAL,
-                         command=self.__undo_move(),
-                         accelerator='Command+Z')
-        menu.add_command(label='Redo',
-                         state=tk.NORMAL,
-                         command=self.__redo_move(),
-                         accelerator='Command+Shift+Z')
-        self.root.config(menu=self.menubar)
+
+        self.__make_file_item(menu,
+                              'Undo',
+                              tk.NORMAL,
+                              self.__undo_move(),
+                              'Command+Z')
+        self.__make_file_item(menu,
+                              'Redo',
+                              tk.NORMAL,
+                              self.__redo_move(),
+                              'Command+Shift+Z')
+
+        menu.add_separator()
+
+        labels = ['Clear Puzzle', 'Clear Row', 'Clear Column',
+                  'Clear Box', 'Clear Cell']
+        states = [tk.NORMAL] * 5
+        commands = [self.__clear_puzzle, self.__clear_row,
+                    self.__clear_column, self.__clear_box,
+                    self.__clear_box]
+        accelerators = [''] * 5
+
+        for _ in zip(labels, states, commands, accelerators):
+            self.__make_file_item(menu, *_)
+
+        menu.add_separator()
+
+        labels = ['Solve Puzzle', 'Solve Row', 'Solve Column',
+                'Solve Box', 'Solve Cell']
+        commands = [self.__clear_puzzle, self.__clear_row,
+                    self.__clear_column, self.__clear_box,
+                    self.__clear_box]
+
+        for _ in zip(labels, states, commands, accelerators):
+            self.__make_file_item(menu, *_)
+
+        menu.add_separator()
 
         menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label='Help', menu=menu)
-        menu.add_command(label='Clear Puzzle',
-                         state=tk.NORMAL,
-                         command=self.__clear_puzzle)
-        menu.add_command(label='Clear Row',
-                         state=tk.NORMAL,
-                         command=self.__clear_row)
-        menu.add_command(label='Clear Column',
-                         state=tk.NORMAL,
-                         command=self.__clear_column)
-        menu.add_command(label='Clear Box',
-                         state=tk.NORMAL,
-                         command=self.__clear_box)
-        menu.add_command(label='Clear Cell',
-                         state=tk.NORMAL,
-                         command=self.__clear_cell)
+        self.menubar.add_cascade(label='Help')
 
-        menu.add_separator()
-
-        menu.add_command(label='Solve Puzzle',
-                         state=tk.NORMAL,
-                         command=self.__solve_puzzle)
-        menu.add_command(label='Solve Row',
-                         state=tk.NORMAL,
-                         command=self.__solve_row)
-        menu.add_command(label='Solve Column',
-                         state=tk.NORMAL,
-                         command=self.__solve_column)
-        menu.add_command(label='Solve Box',
-                         state=tk.NORMAL,
-                         command=self.__solve_box)
-        menu.add_command(label='Solve Cell',
-                         state=tk.NORMAL,
-                         command=self.__solve_cell)
-
-        menu.add_separator()
-
-        menu.add_command(label='Tutorials',
-                         state=tk.NORMAL,
-                         command=self.__generate_tutorials)
-
-
+        self.__make_file_item(menu,
+                              label='Tutorials',
+                              state=tk.NORMAL,
+                              command=self.__generate_tutorials,
+                              accelerator='')
 
 
     def __new_game(self):
@@ -140,7 +138,7 @@ class App(object):
         pass
 
 
-    def __save_as(self):
+    def __save_game_as(self):
         pass
 
 

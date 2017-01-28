@@ -13,10 +13,12 @@ from sudokugame import SudokuGame
 BOARDS = ['debug', 'n00b', 'l33t', 'error']
 MARGIN = 10
 SIDE = 60
-SUDOKU_WIDTH = SUDOKU_HEIGHT = MARGIN * 2 + SIDE * 9
-WIDTH = 2.5 * SUDOKU_WIDTH
+SUDOKU_BOX_SIZE = 3
+SUDOKU_SIZE = SUDOKU_BOX_SIZE ** 2
+SUDOKU_WIDTH = SUDOKU_HEIGHT = MARGIN * 2 + SIDE * SUDOKU_SIZE
+WIDTH = 3 * SUDOKU_WIDTH
 HEIGHT = SUDOKU_HEIGHT + 100
-BUTTON_WIDTH=12
+BUTTON_WIDTH = 10
 NO_SHIFT = 96
 SHIFT = 97
 
@@ -96,68 +98,37 @@ class SudokuUI(tk.Frame):
 
     def __make_clear_buttons(self):
 
-        clear_puzzle_button = tk.Button(self,
-                                     text='Clear Puzzle',
-                                     command=self.__clear_puzzle,
-                                     width=BUTTON_WIDTH)
-        clear_puzzle_button.grid(column=0, row=20)
+        text = ['Clear Puzzle', 'Clear Row', 'Clear Column',
+                'Clear Box', 'Clear Cell']
+        commands = [self.__clear_puzzle, self.__clear_row,
+                    self.__clear_column, self.__clear_box,
+                    self.__clear_box]
+        widths = [BUTTON_WIDTH] * 5
+        columns = range(0, 10, 2)
+        rows = [18] * 5
 
-        clear_row_button = tk.Button(self,
-                                  text='Clear Row',
-                                  command=self.__clear_row,
-                                  width=BUTTON_WIDTH)
-        clear_row_button.grid(column=2, row=20)
-
-        clear_column_button = tk.Button(self,
-                                     text='Clear Column',
-                                     command=self.__clear_column,
-                                     width=BUTTON_WIDTH)
-        clear_column_button.grid(column=4, row=20)
-
-        clear_box_button = tk.Button(self,
-                                  text='Clear Box',
-                                  command=self.__clear_box,
-                                  width=BUTTON_WIDTH)
-        clear_box_button.grid(column=6, row=20)
-
-        clear_cell_button = tk.Button(self,
-                                   text='Clear Cell',
-                                   command=self.__clear_cell,
-                                   width=BUTTON_WIDTH)
-        clear_cell_button.grid(column=8, row=20)
+        for toople in zip(text, commands, widths, columns,rows):
+            self.__make_particular_button(*toople)
 
 
     def __make_solve_buttons(self):
 
-        solve_puzzle_button = tk.Button(self,
-                                     text='Solve Puzzle',
-                                     command=self.__solve_puzzle,
-                                     width=BUTTON_WIDTH)
-        solve_puzzle_button.grid(column=0, row=18, rowspan=2)
+        text = ['Solve Puzzle', 'Solve Row', 'Solve Column',
+                'Solve Box', 'Solve Cell']
+        commands = [self.__clear_puzzle, self.__clear_row,
+                    self.__clear_column, self.__clear_box,
+                    self.__clear_box]
+        widths = [BUTTON_WIDTH] * 5
+        columns = range(0, 10, 2)
+        rows = [20] * 5
 
-        solve_row_button = tk.Button(self,
-                                  text='Solve Row',
-                                  command=self.__solve_row,
-                                  width=BUTTON_WIDTH)
-        solve_row_button.grid(column=2, row=18)
+        for toople in zip(text, commands, widths, columns, rows):
+            self.__make_particular_button(*toople)
 
-        solve_column_button = tk.Button(self,
-                                     text='Solve Column',
-                                     command=self.__solve_column,
-                                     width=BUTTON_WIDTH)
-        solve_column_button.grid(column=4, row=18)
 
-        solve_box_button = tk.Button(self,
-                                     text='Solve Box',
-                                     command=self.__solve_box,
-                                     width=BUTTON_WIDTH)
-        solve_box_button.grid(column=6, row=18)
-
-        solve_cell_button = tk.Button(self,
-                                     text='Solve Cell',
-                                     command=self.__solve_cell,
-                                     width=BUTTON_WIDTH)
-        solve_cell_button.grid(column=8, row=18)
+    def __make_particular_button(self, text, command, width, column, row):
+        button = tk.Button(self, text=text, command=command, width=width)
+        button.grid(column=column, row=row)
 
 
     def __draw_activity_log_title(self):
@@ -256,8 +227,8 @@ class SudokuUI(tk.Frame):
         if update:
             self.game.update_entries()
 
-        for i in range(9):
-            for j in range(9):
+        for i in range(SUDOKU_SIZE):
+            for j in range(SUDOKU_SIZE):
 
                 answer = self.game.puzzle[i][j]
                 original = self.game.start_puzzle[i][j]
@@ -297,14 +268,14 @@ class SudokuUI(tk.Frame):
 
     def __draw_shadow_puzzle(self):
 
-        for i in range(9):
-            for j in range(9):
+        for i in range(SUDOKU_SIZE):
+            for j in range(SUDOKU_SIZE):
 
                 answer = self.game.puzzle[i][j]
                 original = self.game.start_puzzle[i][j]
 
-                for ii in range(3):
-                    for jj in range(3):
+                for ii in range(SUDOKU_BOX_SIZE):
+                    for jj in range(SUDOKU_BOX_SIZE):
 
                         number = ii * 3 + jj + 1
                         font = ('', 12)
@@ -358,8 +329,8 @@ class SudokuUI(tk.Frame):
 
     def __set_cursor(self):
         if (self.canvas.row, self.canvas.col) == (-1, -1):
-            for i in range(9):
-                for j in range(9):
+            for i in range(SUDOKU_SIZE):
+                for j in range(SUDOKU_SIZE):
                     if self.game.start_puzzle[i][j] == 0:
                         self.canvas.row, self.canvas.col = i, j
                         self.shadow.row, self.shadow.col = i, j
@@ -371,8 +342,8 @@ class SudokuUI(tk.Frame):
                 self.game.entries[self.shadow.row][self.shadow.col][3 * row + col] == 0):
             row, col = -1, -1
 
-        for i in range(3):
-            for j in range(3):
+        for i in range(SUDOKU_BOX_SIZE):
+            for j in range(SUDOKU_BOX_SIZE):
                 number = i * 3 + j + 1
                 if self.game.entries[self.shadow.row][self.shadow.col][number - 1]:
                     self.shadow.subrow, self.shadow.subcol = i, j
@@ -406,10 +377,10 @@ class SudokuUI(tk.Frame):
         self.canvas.rectangles = []
         self.canvas.text = []
 
-        for i in range(9):
+        for i in range(SUDOKU_SIZE):
             self.canvas.rectangles.append([])
             self.canvas.text.append([])
-            for j in range(9):
+            for j in range(SUDOKU_SIZE):
 
                 x = MARGIN + j * SIDE + SIDE / 2
                 y = MARGIN + i * SIDE + SIDE / 2
@@ -430,16 +401,16 @@ class SudokuUI(tk.Frame):
         self.shadow.rectangles = []
         self.shadow.text = []
 
-        for i in range(9):
+        for i in range(SUDOKU_SIZE):
             self.shadow.rectangles.append([])
             self.shadow.text.append([])
-            for j in range(9):
+            for j in range(SUDOKU_SIZE):
                 self.shadow.rectangles[-1].append([])
                 self.shadow.text[-1].append([])
-                for ii in range(3):
+                for ii in range(SUDOKU_BOX_SIZE):
                     self.shadow.rectangles[-1][-1].append([])
                     self.shadow.text[-1][-1].append([])
-                    for jj in range(3):
+                    for jj in range(SUDOKU_BOX_SIZE):
 
                         x = MARGIN + j * SIDE + jj * SIDE / 3 + SIDE / 6
                         y = MARGIN + i * SIDE + ii * SIDE / 3 + SIDE / 6
@@ -543,7 +514,7 @@ class SudokuUI(tk.Frame):
         row, col = self.canvas.row, self.canvas.col
 
         if row >= 0 and col >= 0:
-            for i in range(9):
+            for i in range(SUDOKU_SIZE):
                 if self.game.start_puzzle[row][i] == 0:
                     self.game.puzzle[row][i] = 0
 
@@ -554,7 +525,7 @@ class SudokuUI(tk.Frame):
         row, col = self.canvas.row, self.canvas.col
 
         if row >= 0 and col >= 0:
-            for i in range(9):
+            for i in range(SUDOKU_SIZE):
                 if self.game.start_puzzle[i][col] == 0:
                     self.game.puzzle[i][col] = 0
 
@@ -565,8 +536,8 @@ class SudokuUI(tk.Frame):
         row, col = self.canvas.row // 3, self.canvas.col // 3
 
         if row >= 0 and col >= 0:
-            for i in range(3):
-                for j in range(3):
+            for i in range(SUDOKU_BOX_SIZE):
+                for j in range(SUDOKU_BOX_SIZE):
                     if self.game.start_puzzle[3 * row + i][3 * col + j] == 0:
                         self.game.puzzle[3 * row + i][3 * col + j] = 0
 
@@ -794,18 +765,18 @@ class SudokuUI(tk.Frame):
 
         contradictions = []
 
-        for i in range(9):
+        for i in range(SUDOKU_SIZE):
             if i != row and self.game.puzzle[i][col] == number:
                 contradictions.append((i, col))
 
-        for j in range(9):
+        for j in range(SUDOKU_SIZE):
             if j != col and self.game.puzzle[row][j] == number:
                 contradictions.append((row, j))
 
         _row, _col = row // 3, col // 3
 
-        for ii in range(3):
-            for jj in range(3):
+        for ii in range(SUDOKU_BOX_SIZE):
+            for jj in range(SUDOKU_BOX_SIZE):
                 cell_row, cell_col = _row * 3 + ii, _col * 3 + jj
                 if cell_row == row and cell_col == col:
                     continue
@@ -813,273 +784,3 @@ class SudokuUI(tk.Frame):
                     contradictions.append((cell_row, cell_col))
 
         return contradictions
-
-
-
-class App(object):
-
-    def __init__(self, game):
-        self.root = tk.Tk()
-        self.ui = SudokuUI(self.root, game)
-        self.root.geometry('%dx%d' % (WIDTH, HEIGHT))
-        self.__undo_stack = self.ui.log
-        self.__redo_stack = []
-        self.__update_timer()
-        self.__make_menus()
-        self.root.bind('<Command-z>', lambda _: self.__undo_move())
-        self.root.bind('<Command-Shift-z>', lambda _: self.__redo_move())
-        self.ui.listbox.bind('<Double-1>', lambda _: self.__undo_n_moves())
-        self.root.mainloop()
-
-
-    def __update_timer(self):
-        self.ui.draw_timer()
-        self.root.after(1000, self.__update_timer)
-
-
-    def __make_menus(self):
-        self.menubar = tk.Menu(self.root)
-
-        menu = tk.Menu(self.menubar, tearoff=0)
-
-        self.menubar.add_cascade(label='File', menu=menu)
-        menu.add_command(label='New',
-                         state=tk.NORMAL,
-                         command=self.__new_game,
-                         accelerator='Command+N')
-        menu.add_command(label='Open',
-                         state=tk.NORMAL,
-                         command=self.__open_game,
-                         accelerator='Command+O')
-        menu.add_command(label='Save Game',
-                         state=tk.NORMAL,
-                         command=self.__save_game,
-                         accelerator='Command+S')
-        menu.add_command(label='Save Game As',
-                         state=tk.NORMAL,
-                         command=self.__save_as,
-                         accelerator='Command+Shift+S')
-        menu.add_separator()
-        menu.add_command(label='Exit',
-                         state=tk.NORMAL,
-                         command=self.root.quit,
-                         accelerator='Command+Q')
-
-        menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label='Edit', menu=menu)
-        menu.add_command(label='Undo',
-                         state=tk.NORMAL,
-                         command=self.__undo_move(),
-                         accelerator='Command+Z')
-        menu.add_command(label='Redo',
-                         state=tk.NORMAL,
-                         command=self.__redo_move(),
-                         accelerator='Command+Shift+Z')
-        self.root.config(menu=self.menubar)
-
-        menu = tk.Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(label='Help', menu=menu)
-        menu.add_command(label='Clear Puzzle',
-                         state=tk.NORMAL,
-                         command=self.__clear_puzzle)
-        menu.add_command(label='Clear Row',
-                         state=tk.NORMAL,
-                         command=self.__clear_row)
-        menu.add_command(label='Clear Column',
-                         state=tk.NORMAL,
-                         command=self.__clear_column)
-        menu.add_command(label='Clear Box',
-                         state=tk.NORMAL,
-                         command=self.__clear_box)
-        menu.add_command(label='Clear Cell',
-                         state=tk.NORMAL,
-                         command=self.__clear_cell)
-
-        menu.add_separator()
-
-        menu.add_command(label='Solve Puzzle',
-                         state=tk.NORMAL,
-                         command=self.__solve_puzzle)
-        menu.add_command(label='Solve Row',
-                         state=tk.NORMAL,
-                         command=self.__solve_row)
-        menu.add_command(label='Solve Column',
-                         state=tk.NORMAL,
-                         command=self.__solve_column)
-        menu.add_command(label='Solve Box',
-                         state=tk.NORMAL,
-                         command=self.__solve_box)
-        menu.add_command(label='Solve Cell',
-                         state=tk.NORMAL,
-                         command=self.__solve_cell)
-
-        menu.add_separator()
-
-        menu.add_command(label='Tutorials',
-                         state=tk.NORMAL,
-                         command=self.__generate_tutorials)
-
-
-
-
-    def __new_game(self):
-        pass
-
-
-    def __open_game(self):
-        pass
-
-
-    def __save_game(self):
-        pass
-
-
-    def __save_as(self):
-        pass
-
-
-    def __generate_tutorials(self):
-        pass
-
-
-    def __solve_puzzle(self):
-        pass
-
-
-    def __solve_row(self):
-        pass
-
-
-    def __solve_column(self):
-        pass
-
-
-    def __solve_box(self):
-        pass
-
-
-    def __solve_cell(self):
-        pass
-
-
-    def __clear_puzzle(self):
-        pass
-
-
-    def __clear_row(self):
-        pass
-
-
-    def __clear_column(self):
-        pass
-
-
-    def __clear_box(self):
-        pass
-
-
-    def __clear_cell(self):
-        pass
-
-
-
-    def __undo_move(self):
-        if self.__undo_stack:
-            self.ui.listbox.delete(0)
-            number = self.__undo_stack.pop()
-            self.__redo_stack.append(number)
-
-            if number > 0:
-
-                row, col = number // 100 - 1, (number % 100) // 10 - 1
-
-                for i in range(len(self.__undo_stack) - 1, -1, -1):
-                    x = self.__undo_stack[i]
-                    x_row, x_col = x // 100 - 1, (x % 100) // 10 - 1
-
-                    if x_row == row and x_col == col:
-                        self.ui.game.puzzle[row][col] = x % 10
-                        break
-
-                else:
-                    self.ui.game.puzzle[row][col] = 0
-
-            else:
-                number *= -1
-
-                row, col, entry = number // 100 - 1, (number % 100) // 10 - 1, number % 10
-
-                self.ui.game.puzzle[row][col] = entry
-
-            self.ui.draw_puzzles()
-
-
-    def __undo_n_moves(self):
-        try:
-            index = self.ui.listbox.curselection()[0]
-        except IndexError:
-            index = -1
-
-
-        for i in range(index + 1):
-            self.__undo_move()
-
-
-    def __redo_move(self):
-        if self.__redo_stack:
-            number = self.__redo_stack.pop()
-            self.__undo_stack.append(number)
-
-            if number > 0:
-
-                row, col = number // 100 - 1, (number % 100) // 10 - 1
-                entry = number % 10
-
-                self.ui.game.puzzle[row][col] = entry
-
-                string = 'Entered %d in row %d column % d' % (entry, row + 1, col + 1)
-
-            else:
-                number *= -1
-                row, col, entry = number // 100 - 1, (number % 100) // 10 - 1, number % 10
-
-                self.ui.game.puzzle[row][col] = 0
-
-                string = 'Deleted %d in row %d column % d' % (entry, row + 1, col + 1)
-
-            self.ui.listbox.insert(0, string)
-
-            self.ui.draw_puzzles()
-
-
-
-def parse_arguments():
-    """
-    Parses arguments of the form:
-        sudoku.py <board name>
-    where 'board name' must be in the BOARD list
-    """
-
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('--board',
-                             help='Desired board name',
-                             type=str,
-                             choices=BOARDS,
-                             required=True)
-
-    args = vars(arg_parser.parse_args())
-
-    return args['board']
-
-def main():
-    board_name = parse_arguments()
-
-    with open('%s.sudoku' % board_name, 'r') as boards_file:
-
-        game = SudokuGame(boards_file)
-        game.start()
-
-        App(game)
-
-if __name__ == '__main__':
-    main()
