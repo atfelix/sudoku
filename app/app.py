@@ -15,10 +15,12 @@ from sudokugame import SudokuGame
 BOARDS = ['debug', 'n00b', 'l33t', 'error']
 MARGIN = 10
 SIDE = 60
-SUDOKU_WIDTH = SUDOKU_HEIGHT = MARGIN * 2 + SIDE * 9
+SUDOKU_WIDTH = SUDOKU_HEIGHT = SIDE * 9
+TOPLEVEL_WIDTH = SUDOKU_WIDTH + 25
+TOPLEVEL_HEIGHT = SUDOKU_HEIGHT + 50
 WIDTH = 3 * SUDOKU_WIDTH
 HEIGHT = SUDOKU_HEIGHT + 100
-BUTTON_WIDTH=12
+BUTTON_WIDTH = 12
 NO_SHIFT = 96
 SHIFT = 97
 
@@ -29,7 +31,16 @@ class App(object):
         self.root = tk.Tk()
         self.root.title('Shadow Sudoku')
         self.ui = SudokuUI(self.root, game)
-        self.root.geometry('%dx%d' % (WIDTH, HEIGHT))
+        self.ui.sudoku_toplevel.geometry('%dx%d+%d+%d' % (TOPLEVEL_WIDTH,
+                                                          TOPLEVEL_HEIGHT,
+                                                          15,
+                                                          30))
+        self.ui.shadow_toplevel.geometry('%dx%d+%d+%d' % (TOPLEVEL_WIDTH,
+                                                          TOPLEVEL_HEIGHT,
+                                                          TOPLEVEL_WIDTH + 500,
+                                                          30))
+        self.ui.activity_log_toplevel.geometry('%dx%d+%d+%d'% (260, TOPLEVEL_HEIGHT,
+                                                               TOPLEVEL_WIDTH + 30, 30))
         self.__undo_stack = self.ui.log
         self.__redo_stack = []
         self.__update_timer()
@@ -56,6 +67,7 @@ class App(object):
 
     def __make_menus(self):
         self.menubar = tk.Menu(self.root)
+        self.root['menu'] = self.menubar
 
         menu = tk.Menu(self.menubar, tearoff=0)
 

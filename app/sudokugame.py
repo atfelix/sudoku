@@ -3,6 +3,8 @@
 # help:     new coder tutorials
 
 
+from constants import *
+
 class SudokuError(Exception):
     """
     An application specific error.
@@ -244,3 +246,58 @@ class SudokuGame(object):
             for jj in range(3):
                 if 3 * i + ii != row or 3 * j + jj != col:
                     self.entries[3 * i + ii][3 * j + jj][value - 1] = 0
+
+
+    def find_offending_entries(self, offending_number, row, column):
+
+        """
+
+        """
+        return self.__find_offending_entries(offending_number, row, column)
+
+
+    def __find_offending_entries(self, offending_number, row, column):
+
+        """
+
+        """
+
+        contradictions = []
+
+        for i in range(SUDOKU_SIZE):
+            if i != row and self.puzzle[i][column] == offending_number:
+                contradictions.append((i, column))
+
+        for j in range(SUDOKU_SIZE):
+            if j != column and self.puzzle[row][j] == offending_number:
+                contradictions.append((row, j))
+
+        _row, _col = row // 3, column // 3
+
+        for ii in range(SUDOKU_BOX_SIZE):
+            for jj in range(SUDOKU_BOX_SIZE):
+                cell_row, cell_col = _row * 3 + ii, _col * 3 + jj
+                if cell_row == row and cell_col == column:
+                    continue
+                if self.puzzle[cell_row][cell_col] == offending_number:
+                    contradictions.append((cell_row, cell_col))
+
+        return contradictions
+
+
+    def toggle_subrow_and_subcol(self, row, col, number, value=-1):
+
+        """
+
+        """
+
+        if value != -1:
+            self.entries[row][col][number] = value
+
+        elif self.entries[row][col][number] == 1:
+            self.entries[row][col][number] = 2
+
+        elif self.entries[row][col][number] == 2:
+            self.entries[row][col][number] = 1
+
+
