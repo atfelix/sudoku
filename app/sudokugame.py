@@ -74,6 +74,30 @@ class SudokuGame(object):
         self.__reset_entries()
 
 
+    def __bool__(self):
+        return self.game_over
+
+
+    def get_entry(self, row, column, number=-1):
+        if number == -1:
+            return self.entries[row][column]
+
+        else:
+            return self.entries[row][column][number]
+
+
+    def get_puzzle_entry(self, row, column):
+        return self.puzzle[row][column]
+
+
+    def get_start_puzzle_entry(self, row, column):
+        return self.start_puzzle[row][column]
+
+
+    def set_puzzle_entry(self, row, column, number):
+        self.puzzle[row][column] = number
+
+
     def __reset_entries(self):
         self.entries = []
         for i in range(9):
